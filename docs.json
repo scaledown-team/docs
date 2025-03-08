@@ -1,0 +1,28 @@
+{
+  "name": "ScaleDown",
+  "theme": "mint",
+  "colors": {
+  "primary": "#2AB673",
+  "light": "#55D799",
+  "dark": "#117866"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "quickstart",
+          {
+            "group": "Editing",
+            "icon": "pen-paintbrush",
+            "pages": ["development", "web-editor"]
+          }
+        ]
+      },
+      {
+        "group": "Writing Content",
+        "pages": ["writing-content/page", "writing-content/text"]
+      }
+    ]
+  }
+}
