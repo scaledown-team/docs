@@ -35,6 +35,8 @@ Ready to get your API key? [Contact our sales team](https://blog.scaledown.ai/bl
 
 ## Your First ScaleDown Request
 
+### Step 1: Set Up Your Request
+
 Here's how to make your first API call to compress a prompt.
 
 <Tabs>
@@ -74,6 +76,103 @@ Here's how to make your first API call to compress a prompt.
     const headers = {
         'x-api-key': 'YOUR_API_KEY',
         'Content-Type': 'application/json'
+    };
+    ```
+  </Tab>
+</Tabs>
+
+
+### Step 2: Set Up Your Request
+
+Here's how to make your first API call to compress a prompt.
+
+<Tabs>
+  <Tab title="Python" icon="python">
+    ```python
+    import requests
+    import json
+
+    # ScaleDown API endpoint
+    url = "[https://api.scaledown.xyz/compress/raw/](https://api.scaledown.xyz/compress/raw/)"
+
+    # Your headers (replace YOUR_API_KEY with your actual key)
+    headers = {
+        'x-api-key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript" icon="typescript">
+    ```typescript
+    // ScaleDown API endpoint
+    const url = "[https://api.scaledown.xyz/compress/raw/](https://api.scaledown.xyz/compress/raw/)";
+
+    // Your headers (replace YOUR_API_KEY with your actual key)
+    const headers = {
+        'x-api-key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    };
+    ```
+  </Tab>
+  <Tab title="JavaScript" icon="javascript">
+    ```javascript
+    // ScaleDown API endpoint
+    const url = "[https://api.scaledown.xyz/compress/raw/](https://api.scaledown.xyz/compress/raw/)";
+
+    // Your headers (replace YOUR_API_KEY with your actual key)
+    const headers = {
+        'x-api-key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    };
+    ```
+  </Tab>
+</Tabs>
+### Step 2: Configure Your Compression
+Separate your context from your main prompt and set the compression rate to `"auto"` for the best results.
+
+<Tabs>
+  <Tab title="Python" icon="python">
+    ```python
+    payload = {
+        "context": "Context about your specific topic or instructions here",
+        "prompt": "Your actual query or question here",
+        "model": "gpt-4o",
+        "scaledown": {
+            "rate": "auto" # Automatic compression rate optimization
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript" icon="typescript">
+    ```typescript
+    interface CompressRequest {
+        context: string;
+        prompt: string;
+        model: string;
+        scaledown: {
+            rate: string;
+        };
+    }
+
+    const payload: CompressRequest = {
+        context: "Context about your specific topic or instructions here",
+        prompt: "Your actual query or question here",
+        model: "gpt-4o",
+        scaledown: {
+            rate: "auto" // Automatic compression rate optimization
+        }
+    };
+    ```
+  </Tab>
+  <Tab title="JavaScript" icon="javascript">
+    ```javascript
+    const payload = {
+        context: "Context about your specific topic or instructions here",
+        prompt: "Your actual query or question here",
+        model: "gpt-4o",
+        scaledown: {
+            rate: "auto" // Automatic compression rate optimization
+        }
     };
     ```
   </Tab>
