@@ -132,4 +132,66 @@ Separate your context from your main prompt and set the compression rate to `"au
   </Tab>
 </Tabs>
 
+### Step 3: Make the Request
+With your request set up and configured, you can now execute the API call.
 
+<Tabs>
+  <Tab title="Python" icon="python">
+    ```python
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    result = response.json()
+
+    print(result)
+    ```
+  </Tab>
+  <Tab title="TypeScript" icon="typescript">
+    ```typescript
+    // Assuming you're using a fetch-like library (e.g., node-fetch)
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+
+    console.log(result);
+    ```
+  </Tab>
+  <Tab title="JavaScript" icon="javascript">
+    ```javascript
+    // Using Fetch API in a browser or Node.js environment
+    fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(result => {
+        console.log(result);
+    })
+    .catch(error => console.error('Error:', error));
+    ```
+  </Tab>
+</Tabs>
+
+That's it! Your prompt is now compressed and ready to be used with your AI model.
+
+---
+
+## Understanding the Response Structure
+The API response provides the compressed prompt along with useful metadata about the operation.
+```json
+{
+  "compressed_prompt": "Your optimized context here...",
+  "model_used": "gpt-4o",
+  "original_prompt_tokens": 150,
+  "compressed_prompt_tokens": 65,
+  "successful": true,
+  "latency_ms": 2341,
+  "request_metadata": {
+    "compression_time_ms": 2341,
+    "compression_rate": "auto",
+    "prompt_length": 425,
+    "compressed_prompt_length": 189
+  }
+}
