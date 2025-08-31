@@ -9,40 +9,18 @@ This method merges two types of models: a concise, non-reasoning Large Language 
 This allows the system to be dynamic: for easy questions, it leans towards the concise base model to save costs, and for difficult questions, it engages more reasoning power to ensure high accuracy.
 
 ### Architecture
-```mermaid
-flowchart TD
-    subgraph User Input
-        A[User Question]
-    end
+![pareto](/pictures/pareto.png)
 
-    subgraph Dynamic Control
-        B[Question Difficulty Estimator]
-        C(Preference Vector γ)
-    end
+## Pareto Merging API
 
-    subgraph Core Model Architecture
-        subgraph Preference-Independent Base
-            D[Base Model <br>(Non-Reasoning LLM)]
-            E[Task Vector <br>(from LRM)]
-            F((Merged Base Model))
-        end
-        subgraph Preference-Dependent Layer
-            G[Low-Rank Tensor <br>(G, A, B)]
-        end
-    end
+### Overview
+The ScaleDown Pareto Merging API provides dynamic, cost-effective reasoning. It merges a concise LLM with a powerful LRM, allowing you to balance response accuracy and token cost on a per-query basis. Instead of using a static model, our system adjusts its reasoning depth based on the predicted difficulty of your prompt, reducing costs by up to 30% while maintaining high accuracy.
 
-    H((Final Merged Model))
+---
+### Quick Start
+Get started in minutes by using our hosted API endpoint or by running the model locally with our Python package.
 
-    subgraph Output
-        I[Optimized Answer <br>(Concise or Detailed)]
-    end
-
-    A --> B
-    B --> C
-    C --> G
-    D -- + --> F
-    E -- Merged using Task Arithmetic --> F
-    F -- + --> H
-    G -- Controlled by γ --> H
-    H --> I
-```
+#### Installation
+```bash
+# Placeholder for package installation
+pip install scaledown-paretomerge
