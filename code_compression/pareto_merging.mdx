@@ -1,5 +1,3 @@
-# Pareto Merging Method
-
 ### Overview
 
 The **Pareto Merging method** is an advanced technique for combining multiple specialized AI models into a single, highly efficient model. Unlike traditional methods that create one static merged model, Pareto Merging produces a flexible framework that can generate an infinite number of model variations tailored to specific needs without retraining.
@@ -11,9 +9,8 @@ This method merges two types of models: a concise, non-reasoning Large Language 
 This allows the system to be dynamic: for easy questions, it leans towards the concise base model to save costs, and for difficult questions, it engages more reasoning power to ensure high accuracy.
 
 ### Architecture
-
 ```mermaid
-graph TD
+flowchart TD
     subgraph User Input
         A[User Question]
     end
@@ -32,19 +29,20 @@ graph TD
         subgraph Preference-Dependent Layer
             G[Low-Rank Tensor <br>(G, A, B)]
         end
-        H((Final Merged Model))
     end
-    
+
+    H((Final Merged Model))
+
     subgraph Output
         I[Optimized Answer <br>(Concise or Detailed)]
     end
 
     A --> B
     B --> C
+    C --> G
     D -- + --> F
     E -- Merged using Task Arithmetic --> F
     F -- + --> H
-    G -- Controlled by --> C
-    C --> G
-    G --> H
+    G -- Controlled by γ --> H
     H --> I
+```
