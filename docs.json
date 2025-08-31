@@ -2,9 +2,9 @@
   "name": "ScaleDown",
   "theme": "mint",
   "colors": {
-  "primary": "#263AED",
-  "light": "#263AED",
-  "dark": "#117866"
+    "primary": "#263AED",
+    "light": "#263AED",
+    "dark": "#117866"
   },
   "navigation": {
     "groups": [
@@ -17,7 +17,7 @@
             "pages": ["quickstart", "workflow_example"]
           }
         ]
-      },
+      }
     ]
   }
 }
