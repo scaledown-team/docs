@@ -11,18 +11,13 @@
       {
         "group": "Getting Started",
         "pages": [
-          "quickstart",
           {
-            "group": "Editing",
+            "group": "Quick Start",
             "icon": "pen-paintbrush",
-            "pages": ["development", "web-editor"]
+            "pages": ["quickstart", "workflow_example"]
           }
         ]
       },
-      {
-        "group": "Writing Content",
-        "pages": ["writing-content/page", "writing-content/text"]
-      }
     ]
   }
 }
