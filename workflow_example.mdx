@@ -1,0 +1,67 @@
+## Complete Workflow Example
+
+Here's how to use the compressed context in your AI workflow:
+
+<Tabs>
+  <Tab title="Python" icon="python">
+    ```python
+    # Step 1: Compress your context with ScaleDown
+    compressed_response = requests.post(
+        "[https://api.scaledown.xyz/compress/raw/](https://api.scaledown.xyz/compress/raw/)",
+        headers=headers,
+        json={
+            "context": "Long context about your topic...",
+            "prompt": "What specific question you want answered",
+            "model": "gpt-4o",
+            "scaledown": {"rate": "auto"}
+        }
+    )
+
+    compressed_context = compressed_response.json()["compressed_prompt"]
+
+    # Step 2: Use compressed context with your AI provider
+    your_actual_question = "What specific question you want answered"
+    
+    final_prompt = f"""
+    System: You are a helpful assistant that answers questions using the provided context
+    Context: {compressed_context}
+    User: {your_actual_question}
+    """
+
+    # Step 3: Send to your AI provider (OpenAI, etc.)
+    import openai
+    ai_response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": final_prompt}]
+    )
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Advanced Configuration Options
+
+Once you're comfortable with basic compression, you can fine-tune your requests:
+
+### Real Example
+
+<Tabs>
+  <Tab title="Python" icon="python">
+    ```python
+    # Example: Compress context about Messi
+    payload = {
+        "context": "Lionel Messi is an Argentine professional footballer who plays as a forward...",
+        "prompt": "How many Ballon d'Or awards does Messi have?",
+        "model": "gpt-4o",
+        "scaledown": {
+            "rate": "auto"
+        }
+    }
+
+    # The response will contain compressed context that you can use
+    # to build your final prompt for the AI model
+    ```
+  </Tab>
+</Tabs>
+
