@@ -14,14 +14,17 @@
           {
             "group": "Quick Start",
             "icon": "pen-paintbrush",
-            "pages": ["quickstart", "workflow_example"]
+            "pages": [
+              "quickstart",
+              "workflow_example"
+            ]
           },
-        "group": "Code_compression",
-        "pages": [
           {
             "group": "Code Compression",
             "icon": "code-fork",
-            "pages": ["code_compression/pareto_merging"]
+            "pages": [
+              "code_compression/pareto_merging"
+            ]
           }
         ]
       }
