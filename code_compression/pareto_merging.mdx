@@ -1,0 +1,50 @@
+# Pareto Merging Method
+
+### Overview
+
+The **Pareto Merging method** is an advanced technique for combining multiple specialized AI models into a single, highly efficient model. Unlike traditional methods that create one static merged model, Pareto Merging produces a flexible framework that can generate an infinite number of model variations tailored to specific needs without retraining.
+
+This method merges two types of models: a concise, non-reasoning Large Language Model (LLM) and a powerful Large Reasoning Model (LRM). The key innovation is a two-part architecture:
+1.  **Preference-Independent Base Model**: A single, fixed base model combines the general knowledge of the LLM with the reasoning capabilities of the LRM.
+2.  **Preference-Dependent Tensor**: A small, trainable "control knob" that is adjusted on-the-fly based on a predicted **question difficulty score**.
+
+This allows the system to be dynamic: for easy questions, it leans towards the concise base model to save costs, and for difficult questions, it engages more reasoning power to ensure high accuracy.
+
+### Architecture
+
+```mermaid
+graph TD
+    subgraph User Input
+        A[User Question]
+    end
+
+    subgraph Dynamic Control
+        B[Question Difficulty Estimator]
+        C(Preference Vector γ)
+    end
+
+    subgraph Core Model Architecture
+        subgraph Preference-Independent Base
+            D[Base Model <br>(Non-Reasoning LLM)]
+            E[Task Vector <br>(from LRM)]
+            F((Merged Base Model))
+        end
+        subgraph Preference-Dependent Layer
+            G[Low-Rank Tensor <br>(G, A, B)]
+        end
+        H((Final Merged Model))
+    end
+    
+    subgraph Output
+        I[Optimized Answer <br>(Concise or Detailed)]
+    end
+
+    A --> B
+    B --> C
+    D -- + --> F
+    E -- Merged using Task Arithmetic --> F
+    F -- + --> H
+    G -- Controlled by --> C
+    C --> G
+    G --> H
+    H --> I
