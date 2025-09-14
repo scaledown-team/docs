@@ -22,7 +22,7 @@
           },
           {
             "group": "Code Compression",
-            "icon": "brackets",
+            "icon": "code",
             "pages": [
               "code_compression/pareto_merging"
             ]
@@ -31,7 +31,8 @@
             "group": "Generic Prompt Reduction",
             "icon": "code-fork",
             "pages": [
-              "code_compression/pareto_merging"
+              "generic-prompt-compression
+/hallucination-reductiono-pipeline"
             ]
           }
         ]
