@@ -29,7 +29,7 @@
             ]
           },
           {
-            "group": "Code Compression",
+            "group": "Prompt Compression for Reasoning Models",
             "icon": "code",
             "pages": [
               "code_compression/pareto_merging"
