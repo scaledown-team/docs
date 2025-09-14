@@ -22,6 +22,13 @@
           },
           {
             "group": "Code Compression",
+            "icon": "brackets",
+            "pages": [
+              "code_compression/pareto_merging"
+            ]
+          },
+          {
+            "group": "Generic Prompt Reduction",
             "icon": "code-fork",
             "pages": [
               "code_compression/pareto_merging"
