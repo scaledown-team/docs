@@ -16,7 +16,8 @@
             "icon": "pen-paintbrush",
             "pages": [
               "quickstart",
-              "workflow_example"
+              "workflow_example",
+              "anatomyofaprompt"
             ]
           },
           {
