@@ -21,17 +21,18 @@
             ]
           },
           {
+            "group": "Generic Prompt Reduction",
+            "icon": "code-fork",
+            "pages": [
+              "generic-prompt-compression/hallucination-reductiono-pipeline",
+              "generic-prompt-compression/overview"
+            ]
+          },
+          {
             "group": "Code Compression",
             "icon": "code",
             "pages": [
               "code_compression/pareto_merging"
-            ]
-          },
-          {
-            "group": "Generic Prompt Reduction",
-            "icon": "code-fork",
-            "pages": [
-              "generic-prompt-compression/hallucination-reductiono-pipeline"
             ]
           }
         ]
