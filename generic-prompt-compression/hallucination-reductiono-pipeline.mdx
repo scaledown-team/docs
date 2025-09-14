@@ -1,0 +1,57 @@
+
+The pipeline's modular design can be integrated into ScaleDown as a new, premium API endpoint, `/pipeline/run`. This service would orchestrate complex LLM workflows while leveraging ScaleDown's core token compression at each step.
+
+Here’s how the four key components can be integrated:
+
+### 2.1. Composable Stages as a Service
+The pipeline's core strength is its sequence of composable stages. This can be directly exposed to the user.
+
+* **Integration:** The `/pipeline/run` endpoint would accept a JSON payload where the user defines the sequence of stages they want to run.
+* **API Payload Example:**
+    ```json
+    {
+      "question": "Who received the IEEE Frank Rosenblatt Award in 2010?",
+      "models": {
+        "target": "gemini-2.5-pro",
+        "helper": "gemini-2.5-flash"
+      },
+      "pipeline": {
+        "stages": [
+          {"type": "baseline"},
+          {"type": "apo"},
+          {"type": "cove"}
+        ]
+      }
+    }
+    ```
+
+### 2.2. "Gates" for Intelligent Cost Control
+The pipeline uses "Gates" for early exits, saving cost and latency if a high-quality answer is found early.
+
+* **Integration:** The gate policy can be a configurable parameter in the API call.
+* **API Payload Example:**
+    ```json
+    {
+      "question": "...",
+      "pipeline": {
+        "stages": [...],
+        "gate": {
+          "mode": "judge",
+          "judge_model": "gemini-2.5-flash",
+          "threshold": 0.9 
+        }
+      }
+    }
+    ```
+
+### 2.3. Prompt Rewriting as a Pipeline Stage
+The Automatic Prompt Optimization (`apo`) stage rewrites prompts for clarity.
+
+* **Integration:** Offered as a specific stage (`"type": "apo"`). Users could call a pipeline with *only* the `apo` stage for advanced prompt engineering.
+
+### 2.4. Verification and Self-Correction Stages
+The Chain-of-Verification (`cove`) and `self_correct` stages fact-check and improve answers.
+
+* **Integration:** Offered as optional, high-value stages. A user can add `"type": "cove"` to their pipeline to explicitly request that the model verifies its answer.
+
+---
