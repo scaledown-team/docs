@@ -1,0 +1,197 @@
+# Modular Prompt Optimization for Hallucination Reduction in Large Language Models
+
+**Contributors:** Yang Zhou, Maryam Sikander, Muhammad Muneeb Baig,  Nirmal Thomas
+
+> **TL;DR**: We built a modular framework to compose prompt-optimization primitives (e.g., Chain-of-Thought, Chain-of-Verification, Expert Persona, Uncertainty prompts), run them across multiple LLMs and tasks, and evaluate hallucinations with precise metrics. The repo contains ready-to-run scripts plus an evaluation pipeline and notebook.
+
+**Code:** [https://github.com/nbzy1995/modular-prompt-optimization/tree/dev-mpa](https://github.com/nbzy1995/modular-prompt-optimization/)
+
+---
+
+## Abstract
+
+Large Language Models (LLMs) often hallucinate—produce fluent but unsupported claims. We present a framework for *modular prompt optimization* that enables composing common prompt primitives and measuring their effect on hallucination rates across models and datasets. Our system treats prompt techniques as interchangeable modules, supports combinatorial experiments, and reports both core accuracy and hallucination-centric metrics. We include preliminary experiments on OpenAI’s SimpleQA benchmark using GPT‑4o as a case study and release code to facilitate replication and extension.
+
+---
+
+## Contributions
+
+* **Modular framework** for composing prompt-optimization primitives and running ablations across models and tasks.
+* **Hallucination-first evaluation** with correct/incorrect/abstention labeling and derived metrics (precision, recall, F1, hallucination rate, abstention rate).
+* **Reproducible experiments** via CLI scripts, automatic checkpointing, and a bundled analysis notebook.
+* **Extensibility hooks** to add new optimizers and tasks with minimal code changes.
+
+---
+
+## System Overview
+
+Our framework separates **(1) model backends**, **(2) task definitions**, **(3) prompt optimizers**, and **(4) evaluation**. Experiments specify a *task* (e.g., `simpleqa`), a *model* (e.g., `scaledown-gpt-4o`), and one or more *optimizers* (e.g., `cot,cove`). Results are saved as JSON for downstream analysis and visualization.
+
+**Key components (files):**
+
+* `src/llms.py` — unified interface to supported providers
+* `src/task_runner.py` — experiment orchestration & checkpointing
+* `src/prompt_optimizer.py` — modular prompt techniques & combinations
+* `evaluate.py` — hallucination-centric evaluator
+* `experiments/` — Jupyter notebook(s) for result analysis
+
+---
+
+## Quickstart
+
+### 1) Prerequisites
+
+* Python ≥ 3.8
+* [`uv`](https://astral.sh/uv) package manager (recommended)
+
+### 2) Setup
+
+```bash
+# clone
+git clone https://github.com/nbzy1995/modular-prompt-optimization.git
+cd modular-prompt-optimization
+
+# sync env and deps (uv)
+uv sync
+
+# set API keys in a .env file (copy .env.template)
+OPENAI_API_KEY=...
+GOOGLE_API_KEY=...
+SCALEDOWN_API_KEY=...
+```
+
+### 3) Run an experiment
+
+```bash
+# Basic: SimpleQA + GPT‑4o + Chain-of-Thought
+uv run experiment.py \
+  --task=simpleqa \
+  --model=scaledown-gpt-4o \
+  --optimizers=cot \
+  --output-path=results
+
+# Combine optimizers (comma-separated)
+uv run experiment.py \
+  --task=simpleqa \
+  --model=scaledown-gpt-4o \
+  --optimizers=expert_persona,cot \
+  --output-path=results
+```
+
+### 4) Evaluate
+
+```bash
+uv run evaluate.py \
+  -r results/scaledown-gpt-4o_simpleqa_cot_results.json \
+  -d dataset/simpleqa.json \
+  -t simpleqa
+```
+
+Example output (truncated):
+
+```
+HALLUCINATION ANALYSIS:
+  Hallucination Rate: 0.684
+  Abstention Rate:    0.020
+CORE PERFORMANCE METRICS:
+  Precision: 0.316
+  F1 Score:  0.308
+```
+
+### 5) Analyze Results
+
+```bash
+cd experiments/
+jupyter notebook simpleqa_hallucination_analysis.ipynb
+```
+
+---
+
+## Supported Options
+
+* **Models:** `scaledown-gpt-4o`, `gemini2.5_flash_lite`, `llama2`, `llama2_70b`
+* **Tasks:** `simpleqa`, `wikidata`, `multispanqa`, `wikidata_category`
+* **Optimizers:** `cot`, `cove`, `expert_persona`, `uncertainty` (composable via commas)
+
+> These options reflect the current branch and may grow. Use `--help` on the scripts for the most up-to-date flags and defaults.
+
+---
+
+## Metrics & Definitions
+
+* **Correct / Incorrect / Abstention**: Each response is labeled into one of these categories.
+* **Precision**: Accuracy on *attempted* answers (i.e., excluding abstentions).
+* **Recall**: Fraction of questions for which the system outputs a correct answer.
+* **F1**: Harmonic mean of precision and recall.
+* **Hallucination Rate**: Fraction of attempted answers that are incorrect.
+* **Abstention Rate**: Fraction of all prompts where the model declines to answer.
+
+We report both core metrics and hallucination-focused metrics because abstention mechanisms often reduce hallucinations at the cost of coverage.
+
+---
+
+## Reproducing Our Preliminary Result (Case Study)
+
+> **Benchmark:** OpenAI SimpleQA
+>
+> **Model:** GPT‑4o (via `scaledown-gpt-4o`)
+>
+> **Optimizer(s):** e.g., `cot`, or combinations like `expert_persona,cot`
+
+### Commands
+
+```bash
+uv run experiment.py --task=simpleqa --model=scaledown-gpt-4o --optimizers=cot --output-path=results
+uv run evaluate.py -r results/scaledown-gpt-4o_simpleqa_cot_results.json -d dataset/simpleqa.json -t simpleqa
+```
+
+### Results
+
+See the output in "experiments/simpleqa_hallucination_analysis.ipynb".
+
+
+---
+
+## Extending the Framework
+
+### Add a New Optimizer
+
+1. Open `src/prompt_optimizer.py`.
+2. Extend `OPTIMIZER_PROMPTS` with a new entry, providing the template and any necessary control args.
+3. Use it via `--optimizers=<new_name>` or combine it with existing ones (comma-separated).
+
+### Add a New Task
+
+1. Add task configuration and dataset spec (e.g., to `src/utils.py` / task mapping used by the runner).
+2. Provide `dataset/<task>.json` (or connector) and define the answer-checking logic.
+3. Run with `--task=<new_task>` and verify via `evaluate.py`.
+
+### Add a New Model Backend
+
+1. Implement the provider in `src/llms.py` (auth, request formatting, rate limiting, cost tracking as needed).
+2. Register the model alias so it is available via `--model=<name>`.
+
+---
+
+## Design Choices & Rationale
+
+* **Modularity first**: treat prompt techniques as independent, composable units to enable factorial experiments.
+* **Separation of concerns**: isolate backends, tasks, optimizers, and evaluation, making each independently extensible.
+* **Hallucination-aware scoring**: optimize not only for accuracy but also for reduced hallucination rate and calibrated abstention.
+* **Reproducibility**: consistent CLI, saved JSON outputs, notebooks.
+
+---
+
+## Limitations & Future Work
+
+* **Datasets**: Expand beyond SimpleQA/Wikidata variants to multi-hop and open-domain settings.
+* **Models**: Add more providers and community models; benchmark on larger open checkpoints.
+* **Optimizers**: Implement search over compositions (e.g., adaptive selection) and cost-aware stopping.
+* **Evaluation**: Incorporate human verification and adversarial probes; add calibration diagnostics.
+* **Efficiency**: Batch inference, caching, and cost tracking for large sweeps.
+
+---
+
+## Acknowledgements
+
+This work was conducted as part of an EleutherAI summer research project with mentorship support. We thank our mentors and the EleutherAI community for feedback and guidance.
