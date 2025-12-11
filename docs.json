@@ -17,7 +17,14 @@
             "pages": [
               "quickstart",
               "workflow_example",
-              "anatomy"
+              "anatomy" 
+            ]
+          },
+          {
+            "group":"Python Package",
+            "icon":"code",
+            "pages":[
+              "Documentation"
             ]
           },
           {

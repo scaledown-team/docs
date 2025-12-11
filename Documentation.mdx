@@ -1,0 +1,164 @@
+**Version 0.1** 
+
+ScaleDown is a context engineering platform that intelligently compresses AI prompts while preserving semantic integrity and reducing hallucinations. Our research-backed compression algorithms analyze prompt components—from reasoning chains to code contexts—and apply targeted optimization techniques that maintain output quality while dramatically reducing token consumption.
+
+## Main Classes
+
+### `scaledown.compressor.ScaleDownCompressor`
+
+The compressor module contains various Compressors, the default being ScaleDownCompressor.
+
+The main entry point for compressing text. It manages API communication, batch processing, and compression settings.
+
+<Info>
+ This class inherits from `BaseCompressor` and handles both single-string and list-based inputs automatically.
+</Info>
+
+```python
+class scaledown.compressor.ScaleDownCompressor(target_model: str = 'gpt-4o',
+                                               rate: Union[float, str] = 'auto',
+                                               api_key: Optional[str] = None,
+                                               temperature: Optional[float] = None,
+                                               preserve_keywords: bool = False,
+                                               preserve_words: Optional[List[str]] = None)
+```
+
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `target_model` | `str` | `'gpt-4o'` | The target LLM you plan to use downstream. ScaleDown optimizes specifically for this model's tokenizer and attention biases. <br/> **Supported:** `'gpt-4o'`, `'gpt-4o-mini'`, `'gemini-2.5-flash'`, etc. |
+| `rate` | `float` \| `'auto'` | `'auto'` | The aggressiveness of compression. <br/> - `'auto'`: ScaleDown determines the optimal rate based on redundancy (recommended). <br/> - `float`: A target retention rate (e.g., `0.4` keeps ~40% of tokens). |
+| `api_key` | `str` | `None` | Your ScaleDown API key. If `None`, looks for `SCALEDOWN_API_KEY` environment variable. |
+| `temperature` | `float` | `None` | Controls compression randomness. Higher values introduce more variation in token selection. |
+| `preserve_keywords` | `bool` | `False` | If `True`, forces the preservation of detected domain-specific keywords. |
+| `preserve_words` | `List[str]` | `None` | A list of specific words or phrases that must never be removed during compression. |
+
+**Methods**
+
+**`compress`**
+
+Compresses the given context and prompt.
+
+
+ ```python
+def compress(context: Union[str, List[str]],
+             prompt: Union[str, List[str]],
+             max_tokens: int = None,
+             **kwargs ) -> Union[CompressedPrompt, List[CompressedPrompt]]
+```
+ 
+
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `context` | `str` \| `List[str]` | The background information (documents, code, history) to compress. |
+| `prompt` | `str` \| `List[str]` | The user query or instruction. This is usually *not* compressed but used to guide the compression of the context. |
+| `max_tokens` | `int` | Optional strict limit on the output token count. |
+| `**kwargs` | `dict` | Additional parameters passed directly to the API payload. |
+
+**Returns**
+
+- **`CompressedPrompt`**: If inputs are strings.
+- **`List[CompressedPrompt]`**: If inputs are lists (supports batch processing).
+
+---
+
+## Data Structures
+
+### `scaledown.types.CompressedPrompt`
+
+A smart object containing the compressed text and valid metadta. It behaves like a string but carries rich statistics.
+This also is the output of Compressor objects.
+
+```python
+class scaledown.types.CompressedPrompt(content: str,
+                                       metrics: CompressionMetrics)
+```
+
+
+**Attributes**
+
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `content` | `str` | The actual compressed text string. |
+| `metrics` | `CompressionMetrics` | Structured metrics object containing token counts and latency. |
+| `tokens` | `Tuple[int, int]` | A tuple of `(original_count, compressed_count)`. |
+| `savings_percent` | `float` | The percentage of tokens removed (e.g., `60.0` for 60% reduction). |
+| `compression_ratio` | `float` | The ratio of original size to compressed size (e.g., `2.5`x). |
+| `latency` | `int` | Server-side processing time in milliseconds. |
+
+**Methods**
+
+- **`print_stats()`**  
+  Prints a formatted summary of compression performance to stdout.
+  
+  As an example-
+
+  ScaleDown Stats:
+  * Tokens: 1000 -> 400
+  * Savings: 60.0%
+  * Ratio: 2.5x
+  * Latency: 150ms
+
+---
+
+### `scaledown.metrics.CompressionMetrics`
+
+Pydantic model that validates the raw metrics returned by the API.
+
+```python
+class scaledown.metrics.CompressionMetrics
+```
+
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `original_prompt_tokens` | `int` | Token count before compression. Validated to be non-negative. |
+| `compressed_prompt_tokens` | `int` | Token count after compression. Validated to be non-negative. |
+| `latency_ms` | `int` | Processing time in milliseconds. |
+| `timestamp` | `datetime` | Time when the compression request was processed. |
+
+---
+
+## Configuration & Exceptions
+
+### Configuration
+
+ScaleDown uses a global configuration system for API keys and endpoints.
+
+```python
+import scaledown
+```
+
+Set API key globally
+
+```python
+scaledown.set_api_key("your-api-key")
+```
+
+Get current key
+```python
+key = scaledown.get_api_key()
+```
+
+- **Environment Variables**:
+  - `SCALEDOWN_API_KEY`: Automatically loaded if not set in code.
+  - `SCALEDOWN_API_URL`: Override the default API endpoint (Default: `https://api.scaledown.xyz`).
+
+### Exceptions
+
+All custom exceptions inherit from `ScaleDownError`.
+
+```python
+from scaledown.exceptions import (ScaleDownError,
+                                  AuthenticationError,
+                                  APIError)
+```
+
+| Exception | Description |
+| :--- | :--- |
+| `ScaleDownError` | Base class for all package errors. |
+| `AuthenticationError` | Raised when the API key is missing, invalid, or expired. |
+| `APIError` | Raised when the server returns a non-200 response (e.g., rate limits, server errors). |
