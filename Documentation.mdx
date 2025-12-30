@@ -1,6 +1,19 @@
-**Version 0.1** 
+**Version 0.1.4** 
 
 ScaleDown is a context engineering platform that intelligently compresses AI prompts while preserving semantic integrity and reducing hallucinations. Our research-backed compression algorithms analyze prompt components—from reasoning chains to code contexts—and apply targeted optimization techniques that maintain output quality while dramatically reducing token consumption.
+
+## Installation
+
+To use the new optimization modules, install ScaleDown with the required extras:
+
+```bash
+# Core compression only
+pip install scaledown
+
+# With HASTE (AST-based) and Semantic search
+pip install "scaledown[haste,semantic]"
+
+```
 
 ## Main Classes
 
@@ -12,6 +25,7 @@ The main entry point for compressing text. It manages API communication, batch p
 
 <Info>
  This class inherits from `BaseCompressor` and handles both single-string and list-based inputs automatically.
+Maintains backward compatibility for users focused purely on context compression.
 </Info>
 
 ```python
@@ -63,20 +77,250 @@ def compress(context: Union[str, List[str]],
 - **`CompressedPrompt`**: If inputs are strings.
 - **`List[CompressedPrompt]`**: If inputs are lists (supports batch processing).
 
+<Accordion title="Usage">
+
+```python
+from scaledown.compressor import ScaleDownCompressor
+
+compressor = ScaleDownCompressor(target_model="gpt-4o", rate=0.5)
+
+# Single input
+result = compressor.compress(
+    context="Long legal document text...",
+    prompt="What is the liability clause."
+)
+print(result.content)
+print(result.savings_percent)
+
+# Batch input
+results = compressor.compress(
+    context=["Doc A text", "Doc B text"],
+    prompt=["Analyze A", "Analyze B"]
+)
+```
+</Accordion>
+
+***
+
+### `scaledown.optimizer.HasteOptimizer`
+
+**Requires:** `pip install scaledown[haste]`
+
+The HASTE (Hybrid AST-Enhanced) optimizer uses Tree-sitter parsing to understand code structure. It performs a hybrid search using BM25 and AST traversal (BFS) to identify relevant function and class definitions, ensuring that code dependencies are included in the context.
+
+```python
+class scaledown.optimizer.HasteOptimizer(top_k: int = 6,
+                                         prefilter: int = 300,
+                                         bfs_depth: int = 1,
+                                         max_add: int=12,
+                                         semantic: bool = False,
+                                         sem_model: str = 'text-embedding-3-small',
+                                         hard_cap: int = 1200,
+                                         soft_cap: int = 1800,
+                                         target_model: str = 'gpt-4o',
+                                         **kwargs)
+                                    
+
+```
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `top_k` | `int` | `6` | Number of top functions/classes to retrieve initially. |
+`prefilter` | `int` | `300` | Size of candidate pool before reranking. |
+| `bfs_depth` | `int` | `1` | Depth of Breadth-First Search over the call graph to find dependencies. |
+| `max_add` | `int` | `12` | Maximum nodes added during BFS expansion. |
+| `semantic` | `bool` | `False` | If `True`, enables semantic reranking using OpenAI embeddings. |
+| `sem_model` | `str` | `text-embedding-3-small` | OpenAI embedding model for semantic search. |
+| `hard_cap` | `int` | `1200` | Strict token limit for the optimized output. |
+| `soft_cap` | `int` | `1800` | Soft token limit for the optimized output. |
+| `target_model` | `str` | `'gpt-4o'` | Model used for token counting calculations. |
+
+**Methods**
+
+**`optimize`**
+
+Extracts relevant code sections based on the query and file structure. The main function that optimizes code context using HASTE.
+
+```python
+def optimize(context: Union[str, List[str]],
+             query: Optional[str] = None,
+             max_tokens: Optional[int] = None,
+             file_path: Optional[str] = None,
+             **kwargs) -> Union[OptimizedContext, List[OptimizedContext]]
+
+```
+| Parameter  | Type            | Description                                                                                                         |
+| ---------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| context    | str \| List[str] | Source code content. If file_path is not provided, context is written to a temporary file for processing. haste.py​ |
+| query      | str             | Query to guide context retrieval (e.g., "find training loop"). Required for HASTE. haste.py​                        |
+| max_tokens | int             | Maximum token budget (uses hard_cap if not specified). haste.py​                                                    |
+| file_path  | str             | Path to the source file (required for AST parsing). haste.py​                                                       |
+| **kwargs   | dict            | Additional HASTE parameters passed dynamically. haste.py​                                                           |
 ---
+
+<Accordion title="Usage">
+```python
+from scaledown.optimizer import HasteOptimizer
+
+optimizer = HasteOptimizer(top_k=5, bfs_depth=2)
+
+# Option 1: Using a file path
+optimized_ctx = optimizer.optimize(
+    context="",  # Content loaded from file
+    query="Where is the authentication logic?",
+    file_path="src/auth_service.py"
+)
+
+# Option 2: Using raw string (creates temp file)
+code_snippet = "def login(): pass\ndef logout(): pass..."
+optimized_ctx = optimizer.optimize(
+    context=code_snippet,
+    query="login function"
+)
+
+print(optimized_ctx.content)
+```
+</Accordion>
+
+### `scaledown.optimizer.SemanticOptimizer`
+
+**Requires:** `pip install scaledown[semantic]`
+
+Uses local embeddings (Sentence Transformers) and FAISS to perform purely semantic search over code chunks or document segments. Best used for large codebases where keyword matching is insufficient.
+
+```python
+class scaledown.optimizer.SemanticOptimizer(model_name: str = "Qwen/Qwen3-Embedding-0.6B",
+                                            top_k: int = 3,
+                                            target_model: str = "gpt-4o")
+
+```
+
+**Parameters**
+
+| Parameter    | Type | Default                     | Description                                                        |
+| ------------ | ---- | --------------------------- | ------------------------------------------------------------------ |
+| model_name   | str  | "Qwen/Qwen3-Embedding-0.6B" | The HuggingFace embedding model to load locally.|
+| top_k        | int  | 3                           | Number of top code chunks to retrieve.         |
+| target_model | str  | "gpt-4o"                    | Target model for code context optimization.  |
+
+**Methods**
+
+**`optimize`**
+
+Finds semantically similar code or text segments. The function that optimizes code context using Semantic code optimizer.
+
+```python
+def optimize(context: str,
+             query: str,
+             file_path: Optional[str] = None,
+             max_tokens:Optional[int]=None,
+             **kwargs) -> OptimizedContext
+
+```
+| Parameter  | Type            | Description                                                                                                  |
+| ---------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
+| context    | str \| List[str] | The text or code content to search within. semantic_code.py​                                                 |
+| query      | str             | The search query used to find relevant sections. Defaults to "main logic" if not provided. semantic_code.py​ |
+| file_path  | str             | Path to the source file (required for extracting semantic units). semantic_code.py​                          |
+| max_tokens | int             | Optional token limit (currently unused in logic but accepted). semantic_code.py​                             |
+
+<Accordion title="Usage">
+```python
+from scaledown.optimizer import SemanticOptimizer
+
+optimizer = SemanticOptimizer(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+result = optimizer.optimize(
+    context=my_large_code_string,
+    file_path="dummy_name.py", # Required for unit extraction
+    query="database connection pool"
+)
+
+print(f"Retrieved {result.metrics.chunks_retrieved} chunks")
+```
+</Accordion>
+---
+
+### `scaledown.pipeline.Pipeline`
+
+The Pipeline class orchestrates multiple optimization and compression steps into a single workflow. It allows you to chain a `HasteOptimizer`, `SemanticOptimizer`, and `ScaleDownCompressor` sequentially.
+```python
+class scaledown.pipeline.Pipeline(steps: List[Tuple[str, Union[BaseOptimizer, BaseCompressor]]])
+
+```
+
+**Methods**
+
+**`run`**
+
+Executes the pipeline on the input data.
+
+```python
+def run(query: str,
+        file_path: str,
+        prompt: str,
+        context: str = "",
+        **kwargs) -> PipelineResult
+
+```
+
+| Parameter | Type | Description                                                                  |
+| --------- | ---- | ---------------------------------------------------------------------------- |
+| context   | str  | The initial input text or code to process.                  |
+| **kwargs  | dict | Arguments passed to each step (e.g., `query`, `prompt`, `file_path`).​ |
+
+**`make_pipeline`**
+
+Helper function to create a pipeline.
+
+```python
+def make_pipeline(*steps) -> Pipeline
+```
+
+<Accordion title="Usage">
+```python
+from scaledown.pipeline import Pipeline, make_pipeline
+from scaledown.optimizer import HasteOptimizer
+from scaledown.compressor import ScaleDownCompressor
+
+# Initialize Pipeline
+pipe = make_pipeline(
+    ('haste', HasteOptimizer(top_k=5)),
+    ('compressor', ScaleDownCompressor(rate=0.4))
+)
+
+# Run
+result = pipe.run(
+    context=source_code, # Used by Compressor and Haste (if file_path not given)
+    query="Find the payment processing logic",  # Used by Haste
+    prompt="Explain the payment logic",         # Used by Compressor
+    file_path="payment.py"                      # Used by Haste
+)
+
+# Retrieving step data
+print(f"Final Savings: {result.savings_percent}%")
+for step in result.history:
+    print(f"Step {step.step_name}: {step.input_tokens} -> {step.output_tokens} tokens")
+```
+</Accordion>
 
 ## Data Structures
 
 ### `scaledown.types.CompressedPrompt`
 
-A smart object containing the compressed text and valid metadta. It behaves like a string but carries rich statistics.
+A Pydantic object containing the compressed text and valid metadta.
 This also is the output of Compressor objects.
 
 ```python
 class scaledown.types.CompressedPrompt(content: str,
-                                       metrics: CompressionMetrics)
-```
+                                       original_prompt: str,
+                                       tokens: Tuple[int, int],
+                                       latency: float,
+                                       target_model: str)
 
+```
 
 **Attributes**
 
@@ -87,7 +331,7 @@ class scaledown.types.CompressedPrompt(content: str,
 | `tokens` | `Tuple[int, int]` | A tuple of `(original_count, compressed_count)`. |
 | `savings_percent` | `float` | The percentage of tokens removed (e.g., `60.0` for 60% reduction). |
 | `compression_ratio` | `float` | The ratio of original size to compressed size (e.g., `2.5`x). |
-| `latency` | `int` | Server-side processing time in milliseconds. |
+| `latency_ms` | `int` | Server-side processing time in milliseconds. |
 
 **Methods**
 
@@ -102,11 +346,45 @@ class scaledown.types.CompressedPrompt(content: str,
   * Ratio: 2.5x
   * Latency: 150ms
 
+- **`from_api_response(cls, content: str, raw_response: Dict[str, Any])`**  
+  Factory method to create instance from raw API response dict.
+    
+
+### `scaledown.types.OptimizedContext`
+
+The output returned by `HasteOptimizer` and `SemanticOptimizer`.
+
+```python
+class scaledown.types.OptimizedContext
+
+```
+
+| Attribute | Type | Description |
+| --- | --- | --- |
+| `content` | `str` | The optimized/selected code or text. |
+| `metrics` | `dict` | Metrics regarding the optimization (e.g., `compression_ratio`). Same as OptimizerMetrics. |
+
+### `scaledown.types.PipelineResult`
+
+The final output returned by `Pipeline.run()`.
+
+```python
+class scaledown.types.PipelineResult
+
+```
+
+| Attribute | Type | Description |
+| --- | --- | --- |
+| `final_content` | `str` | The fully processed text (after optimization and compression). |
+| `savings_percent` | `float` | Total percentage of tokens removed across all steps. |
+| `history` | `List[StepMetrics]` | A breakdown of token usage at each stage of the pipeline. |
+| `metrics` | `CompressionMetrics` | Aggregated metrics for the final output. |
+
 ---
 
 ### `scaledown.metrics.CompressionMetrics`
 
-Pydantic model that validates the raw metrics returned by the API.
+Pydantic model that validates the raw metrics returned by the API. Metrics returned in the CompressedPrompt object returned by `compress` method of `ScaleDownCompressor`.
 
 ```python
 class scaledown.metrics.CompressionMetrics
@@ -119,6 +397,22 @@ class scaledown.metrics.CompressionMetrics
 | `compressed_prompt_tokens` | `int` | Token count after compression. Validated to be non-negative. |
 | `latency_ms` | `int` | Processing time in milliseconds. |
 | `timestamp` | `datetime` | Time when the compression request was processed. |
+
+
+```python
+class scaledown.metrics.OptimizerMetrics
+```
+The 'metrics' dict returned in HasteOptimizer's and SemanticOptimizer's `optimize` method, inside OptimizedContext. Token counts, compression ratios and latency are calculated uniformly across all optimization methods.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `original_tokens` | `int` | Token count before compression.|
+| `optimized_tokens` | `int` | Token count after Optimization.|
+| `latency_ms` | `int` | Processing time in milliseconds. |
+| `compression_ratio` | `float` | Ratio of original to optimized tokens. |
+| `retrieval_mode` | `str` | Method used (e.g., 'hybrid', 'bm25', 'semantic_search'). |
+| `ast_fidelty` | `float` | The AST Fidelty at which the code context was optimized. Metric indicating structural preservation. |
+| `chunks_retreived` | `int` | Number of code chunks/functions selected |
 
 ---
 
@@ -154,11 +448,13 @@ All custom exceptions inherit from `ScaleDownError`.
 ```python
 from scaledown.exceptions import (ScaleDownError,
                                   AuthenticationError,
-                                  APIError)
+                                  APIError,
+                                  OptimizationError)
 ```
 
 | Exception | Description |
 | :--- | :--- |
 | `ScaleDownError` | Base class for all package errors. |
+| `OptimizerError` | Raised when a local optimizer fails (e.g., missing dependencies like Tree-sitter). |
 | `AuthenticationError` | Raised when the API key is missing, invalid, or expired. |
 | `APIError` | Raised when the server returns a non-200 response (e.g., rate limits, server errors). |
