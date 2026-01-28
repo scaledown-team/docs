@@ -88,7 +88,6 @@ Separate your context from your main prompt and set the compression rate to `"au
     payload = {
         "context": "Context about your specific topic or instructions here",
         "prompt": "Your actual query or question here",
-        "model": "gpt-4o",
         "scaledown": {
             "rate": "auto" # Automatic compression rate optimization
         }
@@ -100,7 +99,6 @@ Separate your context from your main prompt and set the compression rate to `"au
     interface CompressRequest {
         context: string;
         prompt: string;
-        model: string;
         scaledown: {
             rate: string;
         };
@@ -109,7 +107,6 @@ Separate your context from your main prompt and set the compression rate to `"au
     const payload: CompressRequest = {
         context: "Context about your specific topic or instructions here",
         prompt: "Your actual query or question here",
-        model: "gpt-4o",
         scaledown: {
             rate: "auto" // Automatic compression rate optimization
         }
@@ -121,7 +118,6 @@ Separate your context from your main prompt and set the compression rate to `"au
     const payload = {
         context: "Context about your specific topic or instructions here",
         prompt: "Your actual query or question here",
-        model: "gpt-4o",
         scaledown: {
             rate: "auto" // Automatic compression rate optimization
         }
@@ -181,7 +177,6 @@ The API response provides the compressed prompt along with useful metadata about
 ```json
 {
   "compressed_prompt": "Your optimized context here...",
-  "model_used": "gpt-4o",
   "original_prompt_tokens": 150,
   "compressed_prompt_tokens": 65,
   "successful": true,
@@ -195,18 +190,6 @@ The API response provides the compressed prompt along with useful metadata about
 }
 ```
 
-### Supported Models
-The `model` parameter in your request payload specifies the target AI model. Here are the currently supported models:
-
-**Gemini**
-* `gemini-2.5-flash`
-* `gemini-2.5-pro`
-* `gemini-2.5-flash-lite`
-* `gemini-2.0-flash`
-
-**OpenAI**
-* `gpt-4o`
-* `gpt-4o-mini`
 
 
 
