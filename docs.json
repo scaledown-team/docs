@@ -17,7 +17,8 @@
             "pages": [
               "quickstart",
               "workflow_example",
-              "anatomy" 
+              "anatomy",
+              "rag_example"
             ]
           },
           {
@@ -33,6 +34,15 @@
             "pages": [
               "generic-prompt-compression/overview",
               "generic-prompt-compression/modular-prompt-optimization"
+            ]
+          },
+          {
+            "group": "RAG Examples",
+            "icon": "book-open",
+            "pages": [
+              "rag_legal",
+              "rag_ecommerce",
+              "rag_hr"
             ]
           },
           {
