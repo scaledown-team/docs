@@ -14,47 +14,10 @@
       {
         "group": "Getting Started",
         "pages": [
-          {
-            "group": "Quick Start",
-            "icon": "pen-paintbrush",
-            "pages": [
-              "quickstart",
-              "workflow_example",
-              "anatomy",
-              "rag_example"
-            ]
-          },
-          {
-            "group":"Python Package",
-            "icon":"code",
-            "pages":[
-              "Documentation"
-            ]
-          },
-          {
-            "group": "Generic Prompt Reduction",
-            "icon": "code-fork",
-            "pages": [
-              "generic-prompt-compression/overview",
-              "generic-prompt-compression/modular-prompt-optimization"
-            ]
-          },
-          {
-            "group": "RAG Examples",
-            "icon": "book-open",
-            "pages": [
-              "rag_legal",
-              "rag_ecommerce",
-              "rag_hr"
-            ]
-          },
-          {
-            "group": "Prompt Compression for Reasoning Models",
-            "icon": "code",
-            "pages": [
-              "code_compression/pareto_merging"
-            ]
-          }
+          "quickstart",
+          "workflow_example",
+          "anatomy",
+          "rag_example"
         ]
       },
       {
@@ -63,6 +26,20 @@
           "api-reference/compress-overview",
           "api-reference/extract-overview",
           "api-reference/summarize-overview"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          {
+            "group": "RAG",
+            "icon": "book-open",
+            "pages": [
+              "rag_legal",
+              "rag_ecommerce",
+              "rag_hr"
+            ]
+          }
         ]
       },
       {
@@ -87,6 +64,33 @@
             "icon": "text-size",
             "pages": [
               "api-reference/summarize"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Research",
+        "pages": [
+          {
+            "group": "Python Package",
+            "icon": "code",
+            "pages": [
+              "Documentation"
+            ]
+          },
+          {
+            "group": "Generic Prompt Reduction",
+            "icon": "code-fork",
+            "pages": [
+              "generic-prompt-compression/overview",
+              "generic-prompt-compression/modular-prompt-optimization"
+            ]
+          },
+          {
+            "group": "Prompt Compression for Reasoning Models",
+            "icon": "code",
+            "pages": [
+              "code_compression/pareto_merging"
             ]
           }
         ]
