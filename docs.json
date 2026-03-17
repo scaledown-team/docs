@@ -6,6 +6,9 @@
     "light": "#263AED",
     "dark": "#117866"
   },
+  "api": {
+    "baseUrl": "https://api.scaledown.xyz"
+  },
   "navigation": {
     "groups": [
       {
@@ -50,6 +53,40 @@
             "icon": "code",
             "pages": [
               "code_compression/pareto_merging"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Endpoints",
+        "pages": [
+          "api-reference/compress-overview",
+          "api-reference/extract-overview",
+          "api-reference/summarize-overview"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
+          {
+            "group": "Compress",
+            "icon": "compress",
+            "pages": [
+              "api-reference/compress"
+            ]
+          },
+          {
+            "group": "Extract",
+            "icon": "magnifying-glass",
+            "pages": [
+              "api-reference/extract"
+            ]
+          },
+          {
+            "group": "Summarize",
+            "icon": "text-size",
+            "pages": [
+              "api-reference/summarize"
             ]
           }
         ]

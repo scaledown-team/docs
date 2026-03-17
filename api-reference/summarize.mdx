@@ -1,0 +1,191 @@
+---
+title: "Summarize"
+api: "POST /summarization/abstractive"
+description: "Produce an abstractive summary of a block of text."
+---
+
+## Overview
+
+The `/summarization/abstractive` endpoint condenses text in the model's own words without adding new information or commentary. Unlike extractive summarization, the output is a fluent rewrite — not a selection of lifted sentences.
+
+## Request
+
+<ParamField body="text" type="string" required>
+  The input text to summarize. Can be an article, document, transcript, or any plain text string.
+</ParamField>
+
+<ParamField body="instructions" type="string">
+  Optional additional rules for the summary. These are appended to the base instructions — they extend, not replace, the default behaviour (no new information, no commentary).
+
+  Examples:
+  - `"Use bullet points."`
+  - `"Focus on financial figures only."`
+  - `"Write in Spanish."`
+  - `"Limit to 3 sentences."`
+</ParamField>
+
+<ParamField body="max_tokens" type="number" default={20048}>
+  Maximum number of tokens in the generated summary.
+</ParamField>
+
+## Response
+
+<ResponseField name="summary" type="string">
+  The generated summary text.
+</ResponseField>
+
+<ResponseField name="input_chars" type="number">
+  Character count of the input text.
+</ResponseField>
+
+<ResponseField name="output_chars" type="number">
+  Character count of the generated summary.
+</ResponseField>
+
+<ResponseField name="latency_ms" type="number">
+  End-to-end request latency in milliseconds.
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400 Bad Request` | Malformed request body or missing required fields. |
+| `401 Unauthorized` | Missing or invalid `x-api-key`. |
+| `429 Too Many Requests` | Rate limit exceeded. Back off and retry. |
+| `500 Internal Server Error` | Inference service unavailable. |
+
+## Authentication
+
+Include your API key in every request using the `x-api-key` header.
+
+```bash
+-H "x-api-key: <your-api-key>"
+```
+
+## Examples
+
+### Basic summary
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/summarization/abstractive \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "text": "Your long text here..."
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/summarization/abstractive",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "text": "Your long text here...",
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch(
+  "https://api.scaledown.xyz/summarization/abstractive",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": "<your-api-key>",
+    },
+    body: JSON.stringify({
+      text: "Your long text here...",
+    }),
+  }
+);
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "summary": "The company reported strong Q3 results, approved a share buyback program, and announced plans for Southeast Asian expansion.",
+  "input_chars": 8340,
+  "output_chars": 142,
+  "latency_ms": 3241
+}
+```
+
+### With instructions
+
+Use `instructions` to control format, language, focus area, or length.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/summarization/abstractive \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "text": "Your long text here...",
+    "instructions": "Use bullet points. Focus on dates and key decisions only.",
+    "max_tokens": 500
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/summarization/abstractive",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "text": "Your long text here...",
+        "instructions": "Use bullet points. Focus on dates and key decisions only.",
+        "max_tokens": 500,
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch(
+  "https://api.scaledown.xyz/summarization/abstractive",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": "<your-api-key>",
+    },
+    body: JSON.stringify({
+      text: "Your long text here...",
+      instructions: "Use bullet points. Focus on dates and key decisions only.",
+      max_tokens: 500,
+    }),
+  }
+);
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "summary": "- The company reported Q3 revenue of $4.2B, up 12% year-over-year.\n- The board approved a $500M share buyback program on October 14.\n- CEO announced plans to expand into Southeast Asia by mid-2027.",
+  "input_chars": 8340,
+  "output_chars": 198,
+  "latency_ms": 3241
+}
+```
+
+## Notes
+
+- The base instructions (no new information, no commentary) are always applied. The `instructions` field adds on top of them — it does not replace them.
+- Temperature, top-p, and other sampling parameters are fixed and not configurable via the API.

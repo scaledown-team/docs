@@ -1,0 +1,45 @@
+---
+title: "Compress"
+description: "Reduce token usage across any AI workflow without changing your prompts or models."
+---
+
+## What it does
+
+The `/compress/raw/` endpoint takes a prompt and its supporting context, then returns a semantically equivalent version that uses significantly fewer tokens. The compression is lossless in intent — the downstream model receives the same information, just expressed more efficiently.
+
+Compression is applied primarily to the `context` field, where redundancy tends to be highest. The `prompt` (your actual question or instruction) is kept intact wherever possible to preserve precise intent.
+
+## When to use it
+
+**You're spending too much on tokens.** If your AI calls include long system prompts, retrieved documents, or conversation history, a large share of your token bill is coming from context — not the actual question. Compressing that context by 50–70% directly reduces cost with no changes to your model or application logic.
+
+**You're hitting context window limits.** Long documents, multi-turn conversations, and RAG pipelines frequently run into model context limits. Compression lets you fit more into a single call without truncating content or splitting requests.
+
+**You're running latency-sensitive workloads.** Fewer input tokens means faster time-to-first-token from the model. For real-time or user-facing applications, this can make a meaningful difference.
+
+**You want to use a smaller, cheaper model.** Smaller models have tighter context windows. Compression makes it practical to run workloads on smaller models that would otherwise require a larger one.
+
+## Common use cases
+
+| Use case | How compression helps |
+|---|---|
+| RAG pipelines | Compress retrieved chunks before they're included in the prompt |
+| Long document Q&A | Fit full documents into context without truncation |
+| Multi-turn chat | Compress conversation history to maintain context across long sessions |
+| Code review / analysis | Compress large codebases or diffs passed as context |
+| Batch processing | Reduce cost at scale when running the same pipeline across many documents |
+| Reasoning model calls | Reduce the token overhead of chain-of-thought and reasoning traces |
+
+## How it fits into your workflow
+
+Compress sits between your data retrieval step and your model call. Your application logic doesn't change — you just route the context through ScaleDown before sending it to the model.
+
+```
+[Your app] → [Retrieve context] → [POST /compress/raw/] → [Call your AI model]
+```
+
+The `compressed_prompt` field in the response is a drop-in replacement for the combined context and prompt you would have sent directly.
+
+## Pricing impact
+
+Token savings translate directly to cost savings. At a 60% compression ratio, a workflow that previously cost $10/day in token spend drops to $4/day — with no changes to the model, the output quality, or the application.

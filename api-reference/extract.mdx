@@ -1,0 +1,264 @@
+---
+title: "Extract"
+api: "POST /extract"
+description: "Extract named entities from text using a custom-defined schema."
+---
+
+## Overview
+
+The `/extract` endpoint runs Named Entity Recognition (NER) over a block of text. Unlike standard NER, you define the entity types you want in plain English — the model uses your descriptions to find matching spans, returning each one with a confidence score and surrounding context.
+
+Every result includes up to 500 characters of surrounding text on each side, so you can validate or use the extracted value without going back to the source.
+
+## Request
+
+<ParamField body="text" type="string" required>
+  The input text to extract entities from. Can be a full document, web page content, article, or any plain text string.
+</ParamField>
+
+<ParamField body="entities" type="object" required>
+  A mapping of entity type names to their definition. Each value can be either:
+
+  - A **plain string** — a description of what to look for
+  - An **object** — with optional `description`, `threshold`, and `top_n` fields that override the global values for that entity type only
+
+  <Expandable title="Entity object fields">
+    <ParamField body="description" type="string">
+      What this entity type represents. Used as the model's search criteria.
+    </ParamField>
+    <ParamField body="threshold" type="number">
+      Per-entity confidence cutoff (0–1). Overrides the global `threshold` for this type only.
+    </ParamField>
+    <ParamField body="top_n" type="number">
+      Per-entity result limit. Overrides the global `top_n` for this type only.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="threshold" type="number" default={0.5}>
+  Global confidence threshold (0–1). Entities below this score are filtered out. Can be overridden per entity type.
+</ParamField>
+
+<ParamField body="top_n" type="number" default={0}>
+  Global limit on how many results to return per entity type, ranked by confidence descending. `0` returns all results above the threshold. Can be overridden per entity type.
+</ParamField>
+
+## Response
+
+<ResponseField name="entities" type="array">
+  List of extracted entities, sorted by confidence descending within each type.
+
+  <Expandable title="Entity object">
+    <ResponseField name="text" type="string">
+      The exact text span extracted from the input.
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The entity type name, matching a key from your `entities` request field.
+    </ResponseField>
+    <ResponseField name="confidence" type="number">
+      Model confidence score between 0 and 1.
+    </ResponseField>
+    <ResponseField name="start" type="number">
+      Character offset of the start of the entity in the input text.
+    </ResponseField>
+    <ResponseField name="end" type="number">
+      Character offset of the end of the entity in the input text.
+    </ResponseField>
+    <ResponseField name="context" type="string">
+      Up to 500 characters of surrounding text on each side of the entity. Prefixed/suffixed with `...` when clipped.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400 Bad Request` | Malformed request body, missing required fields, or empty `entities` map. |
+| `401 Unauthorized` | Missing or invalid `x-api-key`. |
+| `429 Too Many Requests` | Rate limit exceeded. Back off and retry. |
+| `500 Internal Server Error` | Inference service unavailable. |
+
+## Authentication
+
+Include your API key in every request using the `x-api-key` header.
+
+```bash
+-H "x-api-key: <your-api-key>"
+```
+
+## Examples
+
+### Basic extraction
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/extract \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "text": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i.",
+    "entities": {
+      "Name": "Full name of the person",
+      "Twitter": "Twitter or X handle",
+      "Instagram": "Instagram username"
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/extract",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "text": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i.",
+        "entities": {
+            "Name": "Full name of the person",
+            "Twitter": "Twitter or X handle",
+            "Instagram": "Instagram username",
+        },
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/extract", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    text: "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i.",
+    entities: {
+      Name: "Full name of the person",
+      Twitter: "Twitter or X handle",
+      Instagram: "Instagram username",
+    },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "entities": [
+    {
+      "text": "Henry Wang",
+      "type": "Name",
+      "confidence": 0.994,
+      "start": 0,
+      "end": 10,
+      "context": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i."
+    },
+    {
+      "text": "@henryw",
+      "type": "Twitter",
+      "confidence": 0.976,
+      "start": 79,
+      "end": 86,
+      "context": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i."
+    },
+    {
+      "text": "@b0i",
+      "type": "Instagram",
+      "confidence": 0.978,
+      "start": 104,
+      "end": 108,
+      "context": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i."
+    }
+  ]
+}
+```
+
+### With per-entity overrides
+
+Use per-entity `threshold` and `top_n` when different entity types need different precision, or when you only want the single best match for a given type.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/extract \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "text": "...",
+    "entities": {
+      "Name": {
+        "description": "Full name of a person",
+        "threshold": 0.3,
+        "top_n": 1
+      },
+      "Company": {
+        "description": "Company or organization name",
+        "threshold": 0.7
+      },
+      "Email": "Email address"
+    },
+    "threshold": 0.5,
+    "top_n": 5
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/extract",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "text": "...",
+        "entities": {
+            "Name": {"description": "Full name of a person", "threshold": 0.3, "top_n": 1},
+            "Company": {"description": "Company or organization name", "threshold": 0.7},
+            "Email": "Email address",
+        },
+        "threshold": 0.5,
+        "top_n": 5,
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/extract", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    text: "...",
+    entities: {
+      Name: { description: "Full name of a person", threshold: 0.3, top_n: 1 },
+      Company: { description: "Company or organization name", threshold: 0.7 },
+      Email: "Email address",
+    },
+    threshold: 0.5,
+    top_n: 5,
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+In this example:
+- `Name` uses threshold `0.3` and returns at most 1 result
+- `Company` uses threshold `0.7` and returns up to 5 results (global `top_n`)
+- `Email` uses the global threshold `0.5` and returns up to 5 results
+
+## Notes
+
+- Results within each entity type are ranked by confidence descending before `top_n` is applied.
+- The `context` field is always derived from the original `text` input — it is not generated by the model.
+- Character offsets (`start`, `end`) refer to byte positions in the original `text` string.
+- There is no fixed limit on the number of entity types you can define in a single request.

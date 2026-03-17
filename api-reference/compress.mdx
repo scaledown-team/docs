@@ -1,0 +1,213 @@
+---
+title: "Compress"
+api: "POST /compress/raw/"
+description: "Compress a prompt and context to reduce token usage while preserving semantic meaning."
+---
+
+## Overview
+
+The `/compress/raw/` endpoint compresses your prompt and context, reducing token count while maintaining the semantic integrity needed for high-quality AI responses. Compression ratios of 50–70% are typical, with no meaningful degradation in downstream model output quality.
+
+## Request
+
+<ParamField body="context" type="string" required>
+  Background information, instructions, or supporting text that provides context for the prompt. This is the content most aggressively compressed — structure and meaning are preserved, but redundancy is removed.
+</ParamField>
+
+<ParamField body="prompt" type="string" required>
+  The main query or question to send to your AI model. Kept intact where possible to preserve intent.
+</ParamField>
+
+<ParamField body="scaledown" type="object" required>
+  Compression configuration.
+
+  <Expandable title="scaledown fields">
+    <ParamField body="rate" type="string | number" required>
+      Compression aggressiveness. Use `"auto"` to let ScaleDown pick the optimal rate based on content, or pass a number between `0` and `1` to set a fixed target ratio (e.g. `0.5` = compress to 50% of original tokens).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="compressed_prompt" type="string">
+  The compressed output, ready to pass directly to your AI model in place of the original context and prompt.
+</ResponseField>
+
+<ResponseField name="original_prompt_tokens" type="number">
+  Token count of the original input.
+</ResponseField>
+
+<ResponseField name="compressed_prompt_tokens" type="number">
+  Token count of the compressed output.
+</ResponseField>
+
+<ResponseField name="successful" type="boolean">
+  Whether the compression completed successfully.
+</ResponseField>
+
+<ResponseField name="latency_ms" type="number">
+  End-to-end request latency in milliseconds.
+</ResponseField>
+
+<ResponseField name="request_metadata" type="object">
+  <Expandable title="Metadata fields">
+    <ResponseField name="compression_time_ms" type="number">
+      Time spent on compression in milliseconds.
+    </ResponseField>
+    <ResponseField name="compression_rate" type="string | number">
+      The compression rate that was applied — either `"auto"` or the numeric value provided.
+    </ResponseField>
+    <ResponseField name="prompt_length" type="number">
+      Character length of the original input.
+    </ResponseField>
+    <ResponseField name="compressed_prompt_length" type="number">
+      Character length of the compressed output.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400 Bad Request` | Malformed request body or missing required fields. |
+| `401 Unauthorized` | Missing or invalid `x-api-key`. |
+| `429 Too Many Requests` | Rate limit exceeded. Back off and retry. |
+| `500 Internal Server Error` | Compression service unavailable. |
+
+## Authentication
+
+Include your API key in every request using the `x-api-key` header.
+
+```bash
+-H "x-api-key: <your-api-key>"
+```
+
+## Examples
+
+### Auto compression
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/compress/raw/ \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "context": "ScaleDown is a context engineering platform. It compresses AI prompts while preserving semantic integrity...",
+    "prompt": "Summarize what ScaleDown does in one sentence.",
+    "scaledown": {
+      "rate": "auto"
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/compress/raw/",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "context": "ScaleDown is a context engineering platform. It compresses AI prompts while preserving semantic integrity...",
+        "prompt": "Summarize what ScaleDown does in one sentence.",
+        "scaledown": {"rate": "auto"},
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/compress/raw/", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    context: "ScaleDown is a context engineering platform. It compresses AI prompts while preserving semantic integrity...",
+    prompt: "Summarize what ScaleDown does in one sentence.",
+    scaledown: { rate: "auto" },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "compressed_prompt": "ScaleDown: context engineering platform, compresses AI prompts, preserves semantic integrity.\n\nSummarize what ScaleDown does in one sentence.",
+  "original_prompt_tokens": 150,
+  "compressed_prompt_tokens": 65,
+  "successful": true,
+  "latency_ms": 2341,
+  "request_metadata": {
+    "compression_time_ms": 2341,
+    "compression_rate": "auto",
+    "prompt_length": 425,
+    "compressed_prompt_length": 189
+  }
+}
+```
+
+### Fixed compression rate
+
+Pass a number for `rate` when you need a guaranteed token budget.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/compress/raw/ \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "context": "...",
+    "prompt": "What are the key points?",
+    "scaledown": {
+      "rate": 0.4
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/compress/raw/",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "context": "...",
+        "prompt": "What are the key points?",
+        "scaledown": {"rate": 0.4},
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/compress/raw/", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    context: "...",
+    prompt: "What are the key points?",
+    scaledown: { rate: 0.4 },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+## Notes
+
+- `"auto"` rate is recommended for most use cases. Fixed rates below `0.3` may noticeably affect output quality on dense technical content.
+- The `compressed_prompt` field is a single string — pass it as the full prompt to your downstream model, replacing both `context` and `prompt`.
+- Token counts are estimated using the same tokenizer as the target model family. Exact counts may vary slightly depending on the model you use downstream.

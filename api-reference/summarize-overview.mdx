@@ -1,0 +1,51 @@
+---
+title: "Summarize"
+description: "Generate fluent, faithful summaries of long text."
+---
+
+<Note>
+  **Summarize is currently in private preview.** Access is available by invitation. To request early access or get onboarded, [contact us](https://scaledown.ai/).
+</Note>
+
+## What it does
+
+The `/summarization/abstractive` endpoint condenses text into a shorter, fluent rewrite in the model's own words. Unlike extractive summarization — which lifts sentences directly from the source — abstractive summarization produces a coherent output that captures the key information without being constrained to the original phrasing.
+
+## When to use it
+
+**You need to condense long documents for humans or downstream models.** Summaries reduce reading time for human reviewers and reduce token costs when passing document content to another model.
+
+**You need format or focus control.** The `instructions` field lets you specify bullet points, a particular language, a word limit, or a topical focus — without overriding the core faithful-summary behaviour.
+
+**You want consistent, low-noise outputs.** Sampling parameters (temperature, top-p) are fixed to a configuration tuned for faithful summarization. You get stable, predictable outputs rather than creative or hallucinated ones.
+
+## Common use cases
+
+| Use case | Example |
+|---|---|
+| Document review | Summarize legal contracts, research papers, or policy documents |
+| News digests | Condense articles to one-paragraph or bullet-point briefs |
+| Customer feedback | Summarize support tickets, reviews, or survey responses at scale |
+| Meeting transcripts | Generate action-item-focused summaries from call recordings |
+| Financial reporting | Extract key figures and decisions from earnings calls or filings |
+| Content pipelines | Pre-process long articles before passing them to downstream models |
+| RAG pre-processing | Summarize retrieved chunks to reduce token overhead before model calls |
+
+## How it fits into your workflow
+
+Summarize works as a standalone step that can sit anywhere documents are consumed — before storing, before displaying, or before passing to another model.
+
+```
+[Ingest document] → [POST /summarization/abstractive] → [Summary] → [Store / display / pass to model]
+```
+
+The response includes `input_chars` and `output_chars` so you can track compression ratios across your pipeline, and `latency_ms` for performance monitoring.
+
+## Abstractive vs. extractive summarization
+
+| | Extractive | Abstractive (this endpoint) |
+|---|---|---|
+| How it works | Selects and stitches existing sentences | Rewrites content in the model's own words |
+| Output quality | Can feel disjointed | Fluent and coherent |
+| Faithfulness | Directly tied to source | Validated — rejects off-task outputs |
+| Flexibility | Limited | Controllable via `instructions` |
