@@ -38,6 +38,15 @@
               "rag_ecommerce",
               "rag_hr"
             ]
+          },
+          {
+            "group": "Integration Prompts",
+            "icon": "code",
+            "pages": [
+              "api-reference/integrate-compress",
+              "api-reference/integrate-extract",
+              "api-reference/integrate-summarize"
+            ]
           }
         ]
       },
@@ -48,24 +57,21 @@
             "group": "Compress",
             "icon": "compress",
             "pages": [
-              "api-reference/compress",
-              "api-reference/integrate-compress"
+              "api-reference/compress"
             ]
           },
           {
             "group": "Extract",
             "icon": "magnifying-glass",
             "pages": [
-              "api-reference/extract",
-              "api-reference/integrate-extract"
+              "api-reference/extract"
             ]
           },
           {
             "group": "Summarize",
             "icon": "text-size",
             "pages": [
-              "api-reference/summarize",
-              "api-reference/integrate-summarize"
+              "api-reference/summarize"
             ]
           }
         ]
