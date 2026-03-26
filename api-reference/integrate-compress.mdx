@@ -1,0 +1,268 @@
+---
+title: "Integrate Compress"
+description: "Copy-paste AI prompts to generate integration code for the /compress/raw/ endpoint."
+---
+
+Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate integration code for the `/compress/raw/` endpoint. Start with the **quick integration** prompt to get something working fast, or use the **production-ready** prompt if you're building for a live environment.
+
+## Prompts
+
+### Quick integration
+
+Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
+
+```text Quick integration prompt
+Write a Python function `compress_context(context: str, prompt: str, api_key: str) -> str`
+that calls the ScaleDown compression API and returns the compressed prompt string.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/compress/raw/
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "context": "<background text to compress>",
+      "prompt": "<the question or instruction, kept intact>",
+      "scaledown": { "rate": "auto" }
+    }
+- Success response (JSON):
+    {
+      "compressed_prompt": "...",
+      "original_prompt_tokens": 150,
+      "compressed_prompt_tokens": 65,
+      "successful": true,
+      "latency_ms": 2341,
+      "request_metadata": { "compression_rate": "auto", ... }
+    }
+- Error responses: 400 (bad request), 401 (invalid key), 429 (rate limited), 500 (server error)
+
+Requirements:
+- Accept the API key as the third parameter.
+- Raise a ValueError with a descriptive message on any non-2xx HTTP response,
+  including the status code and response body in the message.
+- Return the `compressed_prompt` string on success.
+```
+
+### Production-ready
+
+Paste this prompt to generate a fully typed Python service class with error handling, retries, and environment-variable-based configuration.
+
+```text Production-ready prompt
+Write a production-quality Python module for integrating the ScaleDown compression API.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/compress/raw/
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "context": "<background text to compress>",
+      "prompt": "<the actual question or instruction, kept intact>",
+      "scaledown": { "rate": "auto" | 0.0–1.0 }
+    }
+  `rate` can be the string "auto" (recommended) or a float between 0.0 and 1.0,
+  where 0.5 means compress to 50% of the original token count.
+- Success response (JSON):
+    {
+      "compressed_prompt": "...",
+      "original_prompt_tokens": 150,
+      "compressed_prompt_tokens": 65,
+      "successful": true,
+      "latency_ms": 2341,
+      "request_metadata": {
+        "compression_time_ms": 2341,
+        "compression_rate": "auto",
+        "prompt_length": 425,
+        "compressed_prompt_length": 189
+      }
+    }
+- Error responses: 400 (malformed body), 401 (missing/invalid key), 429 (rate limit exceeded),
+  500 (server error)
+
+Apply these programming principles:
+
+1. Environment configuration — Load the API key from the environment variable
+   SCALEDOWN_API_KEY. Raise a clear ValueError at construction time if it is missing
+   or empty, with a message that tells the developer exactly what to set.
+
+2. Typed result — Define a CompressResult dataclass with fields:
+     compressed_prompt (str), original_tokens (int), compressed_tokens (int),
+     compression_rate (str | float), latency_ms (int)
+
+3. Custom exception — Define a ScaleDownError exception class that carries
+   status_code (int) and message (str), and formats them into the exception message.
+
+4. Single-responsibility client — Implement a ScaleDownCompressClient class with one
+   public method:
+     compress(context: str, prompt: str, rate: str | float = "auto") -> CompressResult
+   The class owns the requests.Session and sets the auth header once at __init__.
+
+5. Retry with exponential backoff — Inside compress(), on HTTP 429 or any 5xx status,
+   wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
+   Raise ScaleDownError after all three retries are exhausted.
+   Raise ScaleDownError immediately on 400 or 401 (not retriable).
+
+6. Type annotations — Add full type annotations to all functions, methods, and fields.
+   No module-level mutable state.
+```
+
+### FastAPI middleware
+
+Paste this prompt to generate a FastAPI middleware that automatically compresses incoming request context before it reaches your route handlers.
+
+```text FastAPI middleware prompt
+Write a FastAPI middleware class called ScaleDownCompressionMiddleware that
+automatically compresses the "context" field of any incoming JSON request body
+using the ScaleDown compression API before the route handler processes the request.
+
+ScaleDown API details:
+- Endpoint: POST https://api.scaledown.xyz/compress/raw/
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "context": "<background text to compress>",
+      "prompt": "<the question or instruction, kept intact>",
+      "scaledown": { "rate": "auto" }
+    }
+  `rate` "auto" lets ScaleDown pick the optimal compression level.
+- Success response (JSON):
+    {
+      "compressed_prompt": "<compressed context + prompt as one string>",
+      "original_prompt_tokens": 150,
+      "compressed_prompt_tokens": 65,
+      "successful": true,
+      "latency_ms": 2341
+    }
+- Error responses: 400 (malformed body), 401 (invalid key), 429 (rate limit), 500 (server error)
+
+Requirements:
+
+1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ at class
+   instantiation. Raise RuntimeError with a clear message if the variable is absent.
+
+2. Conditional activation — Only call the ScaleDown API when the incoming request's
+   Content-Type header is "application/json" AND the parsed JSON body contains a
+   "context" key. Pass all other requests through unchanged.
+
+3. Context replacement — Call /compress/raw/ with the body's "context" field as
+   `context` and the body's "prompt" field as `prompt` (use an empty string if
+   "prompt" is absent). Use rate "auto".
+   Store the compressed_prompt value in request.state.compressed_context so route
+   handlers can read it.
+
+4. Graceful degradation — If the ScaleDown call fails for any reason (network timeout,
+   non-2xx status, JSON parse error), log a warning using the `logging` module and
+   set request.state.compressed_context to the original context value.
+   Never return an error response to the client because of a compression failure.
+
+5. Usage example — Include a short example at the bottom showing:
+   - How to register the middleware: app.add_middleware(ScaleDownCompressionMiddleware)
+   - A FastAPI POST route that reads request.state.compressed_context and passes it
+     to an OpenAI or similar LLM call.
+```
+
+---
+
+## What the production prompt generates
+
+The production-ready prompt instructs the AI to apply six programming principles. Here is an example of the code it produces:
+
+<Tip>
+**Principles encoded in the production-ready prompt:** environment-variable config, typed result dataclass, custom exception class, single-responsibility service client, retry with exponential backoff, full type annotations.
+</Tip>
+
+<Expandable title="Example output from the production-ready prompt">
+
+```python
+import os
+import time
+import requests
+from dataclasses import dataclass
+from typing import Union
+
+
+@dataclass
+class CompressResult:
+    compressed_prompt: str
+    original_tokens: int
+    compressed_tokens: int
+    compression_rate: Union[str, float]
+    latency_ms: int
+
+
+class ScaleDownError(Exception):
+    def __init__(self, status_code: int, message: str) -> None:
+        super().__init__(f"ScaleDown API error {status_code}: {message}")
+        self.status_code = status_code
+        self.message = message
+
+
+class ScaleDownCompressClient:
+    BASE_URL = "https://api.scaledown.xyz/compress/raw/"
+
+    def __init__(self) -> None:
+        api_key = os.environ.get("SCALEDOWN_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "SCALEDOWN_API_KEY environment variable is missing or empty. "
+                "Set it with: export SCALEDOWN_API_KEY=your_key_here"
+            )
+        self._session = requests.Session()
+        self._session.headers.update({"x-api-key": api_key})
+
+    def compress(
+        self,
+        context: str,
+        prompt: str,
+        rate: Union[str, float] = "auto",
+    ) -> CompressResult:
+        payload = {
+            "context": context,
+            "prompt": prompt,
+            "scaledown": {"rate": rate},
+        }
+        retry_delays = [2, 4, 8]
+        last_error: ScaleDownError | None = None
+
+        for attempt in range(len(retry_delays) + 1):
+            if attempt > 0:
+                time.sleep(retry_delays[attempt - 1])
+
+            response = self._session.post(self.BASE_URL, json=payload)
+
+            if response.ok:
+                data = response.json()
+                meta = data.get("request_metadata", {})
+                return CompressResult(
+                    compressed_prompt=data["compressed_prompt"],
+                    original_tokens=data["original_prompt_tokens"],
+                    compressed_tokens=data["compressed_prompt_tokens"],
+                    compression_rate=meta.get("compression_rate", rate),
+                    latency_ms=data["latency_ms"],
+                )
+
+            if response.status_code in {429, 500, 502, 503, 504}:
+                last_error = ScaleDownError(response.status_code, response.text)
+                continue  # retry
+
+            # 400, 401: not retriable
+            raise ScaleDownError(response.status_code, response.text)
+
+        raise last_error  # type: ignore[misc]
+```
+
+Usage:
+
+```python
+import os
+
+os.environ["SCALEDOWN_API_KEY"] = "your_key_here"
+
+client = ScaleDownCompressClient()
+result = client.compress(
+    context="ScaleDown is a context engineering platform...",
+    prompt="Summarize what ScaleDown does in one sentence.",
+)
+print(result.compressed_prompt)
+print(f"Saved {result.original_tokens - result.compressed_tokens} tokens")
+```
+
+</Expandable>

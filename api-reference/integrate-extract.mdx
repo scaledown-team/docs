@@ -1,0 +1,321 @@
+---
+title: "Integrate Extract"
+description: "Copy-paste AI prompts to generate integration code for the /extract endpoint."
+---
+
+<Note>
+  **Extract is currently in private preview.** [Request access](https://app.reclaim.ai/m/neal-scaledown/25-min) before integrating.
+</Note>
+
+Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate integration code for the `/extract` endpoint. Start with the **quick integration** prompt to get something working fast, or use the **production-ready** prompt if you're building for a live environment.
+
+## Prompts
+
+### Quick integration
+
+Paste this prompt to generate a minimal TypeScript function — useful for prototyping or one-off scripts.
+
+```text Quick integration prompt
+Write a TypeScript async function `extractEntities` that calls the ScaleDown entity
+extraction API and returns the list of extracted entities.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/extract
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<the document or passage to search>",
+      "entities": {
+        "<EntityTypeName>": "<plain English description of what to look for>"
+      }
+    }
+  The keys in "entities" are names you choose (e.g. "Name", "Email", "Company").
+  The values are descriptions of what each key should match.
+- Success response (JSON):
+    {
+      "entities": [
+        {
+          "text": "<the exact matched span from the input>",
+          "type": "<EntityTypeName matching a key you defined>",
+          "confidence": 0.994,
+          "start": 0,
+          "end": 10,
+          "context": "<up to 500 characters of surrounding text on each side>"
+        }
+      ]
+    }
+- Error responses: 400 (bad body or empty entities map), 401 (invalid key),
+  429 (rate limited), 500 (server error)
+
+Function signature:
+  extractEntities(
+    text: string,
+    entitySchema: Record<string, string>,
+    apiKey: string
+  ): Promise<Array<{ text: string; type: string; confidence: number;
+                      start: number; end: number; context: string }>>
+
+Requirements:
+- Use the native fetch API (Node 18+).
+- Throw an Error that includes the HTTP status code and response body text on
+  any non-2xx response.
+- Return the entities array directly on success.
+```
+
+### Production-ready
+
+Paste this prompt to generate a fully typed TypeScript service class with error handling, retries, and environment-variable-based configuration.
+
+```text Production-ready prompt
+Write a production-quality TypeScript module for integrating the ScaleDown entity
+extraction API.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/extract
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<document or passage to search>",
+      "entities": {
+        "<TypeName>": "<description string>"
+          | {
+              "description": "<what to look for>",
+              "threshold": 0.0–1.0,  // optional, overrides global threshold for this type
+              "top_n": number        // optional, max results for this type; 0 = unlimited
+            }
+      },
+      "threshold": 0.5,  // optional global confidence cutoff, default 0.5
+      "top_n": 0         // optional global max results per type, default 0 (unlimited)
+    }
+- Success response (JSON):
+    {
+      "entities": [
+        {
+          "text": "<matched span>",
+          "type": "<TypeName>",
+          "confidence": 0.994,
+          "start": 0,
+          "end": 10,
+          "context": "<up to 500 chars of surrounding text on each side>"
+        }
+      ]
+    }
+  Results within each type are ranked by confidence descending before top_n is applied.
+- Error responses: 400 (malformed body or empty entities map), 401 (missing/invalid key),
+  429 (rate limit exceeded), 500 (server error)
+
+Apply these programming principles:
+
+1. Environment configuration — Load the API key from process.env.SCALEDOWN_API_KEY.
+   Throw a clear Error at construction time if the variable is undefined or empty,
+   with a message that tells the developer exactly which variable to set.
+
+2. TypeScript interfaces — Define the following:
+     EntityDefinition: string | { description: string; threshold?: number; top_n?: number }
+     ExtractOptions: { threshold?: number; top_n?: number }
+     ExtractedEntity: { text: string; type: string; confidence: number;
+                        start: number; end: number; context: string }
+     ExtractResult: { entities: ExtractedEntity[] }
+
+3. Custom error class — Define ScaleDownError extending Error with fields
+   status: number and body: string, setting name = "ScaleDownError".
+
+4. Single-responsibility client — Implement a ScaleDownExtractClient class with one
+   public async method:
+     extract(
+       text: string,
+       entitySchema: Record<string, EntityDefinition>,
+       options?: ExtractOptions
+     ): Promise<ExtractResult>
+   No global state; the API key is stored as a private readonly field.
+
+5. Retry with exponential backoff — On HTTP 429 or any 5xx status, wait 2 000 ms
+   before retry 1, 4 000 ms before retry 2, 8 000 ms before retry 3.
+   Throw ScaleDownError after all three retries are exhausted.
+   Throw ScaleDownError immediately on 400 or 401 (not retriable).
+
+6. Use fetch (Node 18+ built-in). No external HTTP dependencies. Full type annotations.
+```
+
+### LangChain tool
+
+Paste this prompt to generate a LangChain Tool that makes the Extract endpoint available to an AI agent.
+
+```text LangChain tool prompt
+Write a Python LangChain Tool subclass called ScaleDownExtractTool that wraps the
+ScaleDown entity extraction API so it can be used as a tool inside a LangChain agent.
+
+ScaleDown API details:
+- Endpoint: POST https://api.scaledown.xyz/extract
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<document or passage to search>",
+      "entities": {
+        "<TypeName>": "<description string>"
+          | { "description": str, "threshold": float, "top_n": int }
+      },
+      "threshold": 0.5,  // optional, global confidence cutoff, default 0.5
+      "top_n": 0         // optional, max results per type, 0 = unlimited, default 0
+    }
+- Success response (JSON):
+    {
+      "entities": [
+        { "text": str, "type": str, "confidence": float,
+          "start": int, "end": int, "context": str }
+      ]
+    }
+- Error responses: 400 (bad body or empty entities map), 401 (invalid key),
+  429 (rate limit), 500 (server error)
+
+Requirements:
+
+1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ in __init__.
+   Raise ValueError with a clear message at init time if the variable is absent.
+
+2. Tool metadata — Set:
+     name = "extract_entities"
+     description = a clear sentence explaining that the tool extracts named entities
+       from text using a plain-English schema, and describing the expected input format.
+
+3. Input format — The tool's _run method accepts a single JSON string with keys:
+     {
+       "text": str,                         // required
+       "entities": { "TypeName": "desc" },  // required
+       "threshold": float,                  // optional, default 0.5
+       "top_n": int                         // optional, default 0
+     }
+   Parse it with json.loads; return a JSON error string if parsing fails.
+
+4. Return format — Return a JSON-encoded string of the entities array on success.
+   On any API error (network failure, non-2xx status, unexpected response shape),
+   return a JSON string { "error": "<message>" } rather than raising an exception,
+   so the agent can handle the failure gracefully.
+
+5. Async version — Implement _arun as an async version of _run using aiohttp.
+   Reuse the same request-building and response-parsing logic.
+
+6. Usage example — Include a short code snippet at the bottom showing how to
+   instantiate the tool and add it to a LangChain agent's tools list.
+```
+
+---
+
+## What the production prompt generates
+
+The production-ready prompt instructs the AI to apply six programming principles. Here is an example of the code it produces:
+
+<Tip>
+**Principles encoded in the production-ready prompt:** environment-variable config, full TypeScript interfaces, custom error class, single-responsibility service client, retry with exponential backoff, no external HTTP dependencies.
+</Tip>
+
+<Expandable title="Example output from the production-ready prompt">
+
+```typescript
+type EntityDefinition =
+  | string
+  | { description: string; threshold?: number; top_n?: number };
+
+interface ExtractOptions {
+  threshold?: number;
+  top_n?: number;
+}
+
+interface ExtractedEntity {
+  text: string;
+  type: string;
+  confidence: number;
+  start: number;
+  end: number;
+  context: string;
+}
+
+interface ExtractResult {
+  entities: ExtractedEntity[];
+}
+
+class ScaleDownError extends Error {
+  constructor(public status: number, public body: string) {
+    super(`ScaleDown API error ${status}: ${body}`);
+    this.name = "ScaleDownError";
+  }
+}
+
+class ScaleDownExtractClient {
+  private static readonly BASE_URL = "https://api.scaledown.xyz/extract";
+  private readonly apiKey: string;
+
+  constructor() {
+    const key = process.env.SCALEDOWN_API_KEY;
+    if (!key) {
+      throw new Error(
+        "SCALEDOWN_API_KEY environment variable is missing or empty. " +
+          "Set it with: export SCALEDOWN_API_KEY=your_key_here"
+      );
+    }
+    this.apiKey = key;
+  }
+
+  async extract(
+    text: string,
+    entitySchema: Record<string, EntityDefinition>,
+    options?: ExtractOptions
+  ): Promise<ExtractResult> {
+    const body = { text, entities: entitySchema, ...options };
+    const retryDelays = [2000, 4000, 8000];
+    let lastError: ScaleDownError | undefined;
+
+    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, retryDelays[attempt - 1]));
+      }
+
+      const response = await fetch(ScaleDownExtractClient.BASE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": this.apiKey,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        return response.json() as Promise<ExtractResult>;
+      }
+
+      const bodyText = await response.text();
+
+      if (response.status === 429 || response.status >= 500) {
+        lastError = new ScaleDownError(response.status, bodyText);
+        continue; // retry
+      }
+
+      // 400, 401: not retriable
+      throw new ScaleDownError(response.status, bodyText);
+    }
+
+    throw lastError!;
+  }
+}
+```
+
+Usage:
+
+```typescript
+const client = new ScaleDownExtractClient(); // reads SCALEDOWN_API_KEY from env
+
+const result = await client.extract(
+  "Henry Wang is a CS student from the SF Bay Area. Twitter: @henryw",
+  {
+    Name: "Full name of the person",
+    Twitter: { description: "Twitter or X handle", threshold: 0.8, top_n: 1 },
+  },
+  { threshold: 0.5 }
+);
+
+for (const entity of result.entities) {
+  console.log(`${entity.type}: "${entity.text}" (confidence: ${entity.confidence})`);
+}
+```
+
+</Expandable>

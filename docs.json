@@ -48,21 +48,24 @@
             "group": "Compress",
             "icon": "compress",
             "pages": [
-              "api-reference/compress"
+              "api-reference/compress",
+              "api-reference/integrate-compress"
             ]
           },
           {
             "group": "Extract",
             "icon": "magnifying-glass",
             "pages": [
-              "api-reference/extract"
+              "api-reference/extract",
+              "api-reference/integrate-extract"
             ]
           },
           {
             "group": "Summarize",
             "icon": "text-size",
             "pages": [
-              "api-reference/summarize"
+              "api-reference/summarize",
+              "api-reference/integrate-summarize"
             ]
           }
         ]

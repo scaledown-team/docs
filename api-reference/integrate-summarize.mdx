@@ -1,0 +1,283 @@
+---
+title: "Integrate Summarize"
+description: "Copy-paste AI prompts to generate integration code for the /summarization/abstractive endpoint."
+---
+
+<Note>
+  **Summarize is currently in private preview.** [Request access](https://app.reclaim.ai/m/neal-scaledown/25-min) before integrating.
+</Note>
+
+Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate integration code for the `/summarization/abstractive` endpoint. Start with the **quick integration** prompt to get something working fast, or use the **production-ready** prompt if you're building for a live environment.
+
+## Prompts
+
+### Quick integration
+
+Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
+
+```text Quick integration prompt
+Write a Python function `summarize_text(text: str, api_key: str,
+instructions: str = None) -> str` that calls the ScaleDown abstractive
+summarization API and returns the summary string.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/summarization/abstractive
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<the document or passage to summarize>",
+      "instructions": "<optional extra rules>",  // optional field
+      "max_tokens": 20048                         // optional field, default 20048
+    }
+  The "instructions" field is appended to the base faithful-summary behaviour —
+  it extends, not replaces, the default. Examples:
+    "Use bullet points."
+    "Focus on financial figures only."
+    "Write in Spanish."
+    "Limit to 3 sentences."
+- Success response (JSON):
+    {
+      "summary": "<the generated summary>",
+      "input_chars": 8340,
+      "output_chars": 142,
+      "latency_ms": 3241
+    }
+- Error responses: 400 (bad request), 401 (invalid key), 429 (rate limited),
+  500 (server error)
+
+Requirements:
+- Accept the API key as the second parameter.
+- Omit "instructions" from the request body if it is None.
+- Raise a ValueError with a descriptive message on any non-2xx HTTP response,
+  including the status code and response body in the message.
+- Return the `summary` string on success.
+```
+
+### Production-ready
+
+Paste this prompt to generate a fully typed Python service class with error handling, retries, and environment-variable-based configuration.
+
+```text Production-ready prompt
+Write a production-quality Python module for integrating the ScaleDown abstractive
+summarization API.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/summarization/abstractive
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<the document or passage to summarize>",
+      "instructions": "<optional rules appended to base behaviour>",  // optional
+      "max_tokens": 20048                                              // optional, default 20048
+    }
+  The "instructions" field extends (not replaces) the default faithful-summary
+  behaviour. It does not allow the model to add new information or commentary.
+  Example values: "Use bullet points.", "Focus on dates and key decisions only.",
+  "Write in Spanish.", "Limit to 3 sentences."
+- Success response (JSON):
+    {
+      "summary": "<generated summary>",
+      "input_chars": 8340,
+      "output_chars": 142,
+      "latency_ms": 3241
+    }
+- Error responses: 400 (malformed body or missing text field), 401 (missing/invalid key),
+  429 (rate limit exceeded), 500 (server error)
+
+Apply these programming principles:
+
+1. Environment configuration — Load the API key from the environment variable
+   SCALEDOWN_API_KEY. Raise a clear ValueError at construction time if it is missing
+   or empty, with a message that tells the developer exactly which variable to set.
+
+2. Typed result — Define a SummaryResult dataclass with fields:
+     summary (str), input_chars (int), output_chars (int), latency_ms (int)
+
+3. Custom exception — Define a ScaleDownError exception class that carries
+   status_code (int) and message (str), and formats them into the exception message.
+
+4. Single-responsibility client — Implement a ScaleDownSummarizer class with one
+   public method:
+     summarize(
+       text: str,
+       instructions: str | None = None,
+       max_tokens: int | None = None
+     ) -> SummaryResult
+   The class owns the requests.Session and sets the auth header once at __init__.
+   Omit "instructions" and "max_tokens" from the request payload when they are None,
+   rather than sending null values.
+
+5. Retry with exponential backoff — Inside summarize(), on HTTP 429 or any 5xx status,
+   wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
+   Raise ScaleDownError after all three retries are exhausted.
+   Raise ScaleDownError immediately on 400 or 401 (not retriable).
+
+6. Type annotations — Add full type annotations to all functions, methods, and fields.
+   No module-level mutable state.
+```
+
+### Async batch pipeline
+
+Paste this prompt to generate an async batch summarizer that processes many documents concurrently with controlled parallelism.
+
+```text Async batch pipeline prompt
+Write a Python async module that batch-summarizes a list of documents using the
+ScaleDown abstractive summarization API with controlled concurrency.
+
+ScaleDown API details:
+- Endpoint: POST https://api.scaledown.xyz/summarization/abstractive
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<the document or passage to summarize>",
+      "instructions": "<optional rules appended to base behaviour>",  // optional
+      "max_tokens": 20048                                              // optional
+    }
+  "instructions" extends, not replaces, the default faithful-summary behaviour.
+- Success response (JSON):
+    {
+      "summary": str,
+      "input_chars": int,
+      "output_chars": int,
+      "latency_ms": int
+    }
+- Error responses: 400 (bad body), 401 (invalid key), 429 (rate limit), 500 (server error)
+
+Requirements:
+
+1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ at module load.
+   Raise ValueError with a clear message if the variable is absent or empty.
+
+2. Public async function:
+     batch_summarize(
+       texts: list[str],
+       instructions: str | None = None,
+       max_tokens: int | None = None,
+       concurrency: int = 5
+     ) -> list[str | None]
+   Returns summaries in the same order as the input list.
+   Returns None at an index if that document permanently fails after all retries.
+
+3. Concurrency control — Use asyncio + aiohttp. Limit the number of simultaneous
+   in-flight requests with an asyncio.Semaphore initialized to the `concurrency`
+   argument.
+
+4. Per-request retry with exponential backoff — For each individual request, retry
+   up to 3 times on HTTP 429 or any 5xx status: wait 2 s, 4 s, 8 s before retries
+   1, 2, and 3. After 3 failures, store None for that index.
+
+5. Logging — Log a WARNING via the `logging` module for each document that permanently
+   fails, including its index and the final error.
+
+6. Omit optional fields — Do not include "instructions" or "max_tokens" in the
+   request payload when they are None.
+
+7. Entry point — Include an `if __name__ == "__main__":` block that calls
+   batch_summarize on a sample list of three short strings and prints each summary.
+```
+
+---
+
+## What the production prompt generates
+
+The production-ready prompt instructs the AI to apply six programming principles. Here is an example of the code it produces:
+
+<Tip>
+**Principles encoded in the production-ready prompt:** environment-variable config, typed result dataclass, custom exception class, single-responsibility service client, retry with exponential backoff, full type annotations.
+</Tip>
+
+<Expandable title="Example output from the production-ready prompt">
+
+```python
+import os
+import time
+import requests
+from dataclasses import dataclass
+from typing import Optional, Union
+
+
+@dataclass
+class SummaryResult:
+    summary: str
+    input_chars: int
+    output_chars: int
+    latency_ms: int
+
+
+class ScaleDownError(Exception):
+    def __init__(self, status_code: int, message: str) -> None:
+        super().__init__(f"ScaleDown API error {status_code}: {message}")
+        self.status_code = status_code
+        self.message = message
+
+
+class ScaleDownSummarizer:
+    BASE_URL = "https://api.scaledown.xyz/summarization/abstractive"
+
+    def __init__(self) -> None:
+        api_key = os.environ.get("SCALEDOWN_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "SCALEDOWN_API_KEY environment variable is missing or empty. "
+                "Set it with: export SCALEDOWN_API_KEY=your_key_here"
+            )
+        self._session = requests.Session()
+        self._session.headers.update({"x-api-key": api_key})
+
+    def summarize(
+        self,
+        text: str,
+        instructions: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+    ) -> SummaryResult:
+        payload: dict = {"text": text}
+        if instructions is not None:
+            payload["instructions"] = instructions
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+
+        retry_delays = [2, 4, 8]
+        last_error: Optional[ScaleDownError] = None
+
+        for attempt in range(len(retry_delays) + 1):
+            if attempt > 0:
+                time.sleep(retry_delays[attempt - 1])
+
+            response = self._session.post(self.BASE_URL, json=payload)
+
+            if response.ok:
+                data = response.json()
+                return SummaryResult(
+                    summary=data["summary"],
+                    input_chars=data["input_chars"],
+                    output_chars=data["output_chars"],
+                    latency_ms=data["latency_ms"],
+                )
+
+            if response.status_code in {429, 500, 502, 503, 504}:
+                last_error = ScaleDownError(response.status_code, response.text)
+                continue  # retry
+
+            # 400, 401: not retriable
+            raise ScaleDownError(response.status_code, response.text)
+
+        raise last_error  # type: ignore[misc]
+```
+
+Usage:
+
+```python
+import os
+
+os.environ["SCALEDOWN_API_KEY"] = "your_key_here"
+
+summarizer = ScaleDownSummarizer()
+result = summarizer.summarize(
+    text="The company reported Q3 revenue of $4.2B, up 12% year-over-year...",
+    instructions="Use bullet points. Focus on dates and key decisions only.",
+)
+print(result.summary)
+print(f"Compressed {result.input_chars} chars to {result.output_chars} chars")
+```
+
+</Expandable>
