@@ -1,0 +1,241 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ScaleDown API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.scaledown.xyz"
+    }
+  ],
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    }
+  },
+  "paths": {
+    "/compress/raw/": {
+      "post": {
+        "summary": "Compress",
+        "description": "Compress a prompt and context to reduce token usage while preserving semantic meaning.",
+        "operationId": "compress",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["context", "prompt", "scaledown"],
+                "properties": {
+                  "context": {
+                    "type": "string",
+                    "description": "Background information, instructions, or supporting text that provides context for the prompt."
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "The main query or question to send to your AI model."
+                  },
+                  "scaledown": {
+                    "type": "object",
+                    "required": ["rate"],
+                    "properties": {
+                      "rate": {
+                        "type": "string",
+                        "description": "Compression aggressiveness. Use 'auto' or a number between 0 and 1 (e.g. '0.5')."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful compression",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "compressed_prompt": { "type": "string" },
+                    "original_prompt_tokens": { "type": "number" },
+                    "compressed_prompt_tokens": { "type": "number" },
+                    "successful": { "type": "boolean" },
+                    "latency_ms": { "type": "number" },
+                    "request_metadata": {
+                      "type": "object",
+                      "properties": {
+                        "compression_time_ms": { "type": "number" },
+                        "compression_rate": {
+                          "oneOf": [
+                            { "type": "string" },
+                            { "type": "number" }
+                          ]
+                        },
+                        "prompt_length": { "type": "number" },
+                        "compressed_prompt_length": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Malformed request body or missing required fields." },
+          "401": { "description": "Missing or invalid x-api-key." },
+          "429": { "description": "Rate limit exceeded." },
+          "500": { "description": "Compression service unavailable." }
+        }
+      }
+    },
+    "/extract": {
+      "post": {
+        "summary": "Extract",
+        "description": "Extract named entities from text using a custom-defined schema.",
+        "operationId": "extract",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text", "entities"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "The input text to extract entities from."
+                  },
+                  "entities": {
+                    "type": "object",
+                    "description": "A mapping of entity type names to their definition.",
+                    "additionalProperties": {
+                      "oneOf": [
+                        { "type": "string" },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "description": { "type": "string" },
+                            "threshold": { "type": "number" },
+                            "top_n": { "type": "number" }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "default": 0.5,
+                    "description": "Global confidence threshold (0–1)."
+                  },
+                  "top_n": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Global limit on results per entity type. 0 returns all above threshold."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful extraction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "text": { "type": "string" },
+                          "type": { "type": "string" },
+                          "confidence": { "type": "number" },
+                          "start": { "type": "number" },
+                          "end": { "type": "number" },
+                          "context": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Malformed request body or missing required fields." },
+          "401": { "description": "Missing or invalid x-api-key." },
+          "429": { "description": "Rate limit exceeded." },
+          "500": { "description": "Inference service unavailable." }
+        }
+      }
+    },
+    "/summarization/abstractive": {
+      "post": {
+        "summary": "Summarize",
+        "description": "Produce an abstractive summary of a block of text.",
+        "operationId": "summarize",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "The input text to summarize."
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "description": "Optional additional rules for the summary."
+                  },
+                  "max_tokens": {
+                    "type": "number",
+                    "default": 20048,
+                    "description": "Maximum number of tokens in the generated summary."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful summarization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": { "type": "string" },
+                    "input_chars": { "type": "number" },
+                    "output_chars": { "type": "number" },
+                    "latency_ms": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Malformed request body or missing required fields." },
+          "401": { "description": "Missing or invalid x-api-key." },
+          "429": { "description": "Rate limit exceeded." },
+          "500": { "description": "Inference service unavailable." }
+        }
+      }
+    }
+  }
+}
