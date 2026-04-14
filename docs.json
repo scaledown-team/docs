@@ -6,8 +6,13 @@
     "light": "#263AED",
     "dark": "#117866"
   },
+  "openapi": "api-reference/openapi.json",
   "api": {
-    "baseUrl": "https://api.scaledown.xyz"
+    "baseUrl": ["https://api.scaledown.xyz"],
+    "auth": {
+      "method": "key",
+      "name": "x-api-key"
+    }
   },
   "navigation": {
     "groups": [
