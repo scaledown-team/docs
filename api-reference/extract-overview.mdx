@@ -45,6 +45,16 @@ Extract sits between your document ingestion step and whatever system consumes s
 
 Each entity in the response includes character offsets (`start`, `end`), so you can highlight or link back to the exact location in the source document.
 
+## Tips for better results
+
+The entity name and description are treated as part of the model's prompt — how you phrase them directly affects extraction quality.
+
+- **Use lowercase or Title Case labels.** The model was trained with lowercase entity names. `person`, `company`, and `date` work better than `PERSON` or `DATE`.
+- **Be specific, and test synonyms.** `person` and `full name` find slightly different things. If results are missing or noisy, try rephrasing the label name.
+- **Labels can be descriptive phrases.** `"capital city and population center"` is a perfectly valid label name and will outperform a bare `"city"` when you need that distinction.
+- **Descriptions can be instructions.** Write `"Find the first and last name of the person in the text"` rather than just `"Name"`. Full instructions consistently outperform short noun phrases.
+- **Don't mix overlapping granularities.** Including both `"location"` and `"city"` in the same call forces the model to split results between them unpredictably. Pick one level of granularity per concept.
+
 ## Compared to traditional NER
 
 | | Traditional NER | ScaleDown Extract |
