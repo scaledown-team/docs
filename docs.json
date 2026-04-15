@@ -29,7 +29,8 @@
         "pages": [
           "api-reference/compress-overview",
           "api-reference/extract-overview",
-          "api-reference/summarize-overview"
+          "api-reference/summarize-overview",
+          "api-reference/classify-overview"
         ]
       },
       {
@@ -45,12 +46,21 @@
             ]
           },
           {
+            "group": "Classify",
+            "icon": "route",
+            "pages": [
+              "classify_support_tickets",
+              "classify_model_routing"
+            ]
+          },
+          {
             "group": "Integration Prompts",
             "icon": "code",
             "pages": [
               "api-reference/integrate-compress",
               "api-reference/integrate-extract",
-              "api-reference/integrate-summarize"
+              "api-reference/integrate-summarize",
+              "api-reference/integrate-classify"
             ]
           }
         ]
@@ -77,6 +87,13 @@
             "icon": "text-size",
             "pages": [
               "api-reference/summarize"
+            ]
+          },
+          {
+            "group": "Classify",
+            "icon": "tags",
+            "pages": [
+              "api-reference/classify"
             ]
           }
         ]

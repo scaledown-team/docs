@@ -1,0 +1,266 @@
+---
+title: "Integrate Classify"
+description: "Copy-paste AI prompts to generate integration code for the /classify endpoint."
+---
+
+Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate integration code for the `/classify` endpoint. Start with the **quick integration** prompt to get something working fast, or use the **production-ready** prompt if you're building for a live environment.
+
+## Prompts
+
+### Quick integration
+
+Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
+
+```text Quick integration prompt
+Write a Python function `classify_text(text: str, labels: list[dict], api_key: str) -> dict`
+that calls the ScaleDown classify API and returns the full response as a dict.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/classify
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<text to classify>",
+      "labels": [
+        { "name": "<label name>", "rubric": "<yes/no question>" }
+      ]
+    }
+- Success response (JSON):
+    {
+      "top_label": "medical",
+      "scores": { "medical": 0.887, "legal": 0.071, "financial": 0.042 },
+      "labels": [
+        { "label": "medical", "score": 0.887, "rubric": "..." },
+        ...
+      ]
+    }
+- Error responses: 422 (malformed body or empty labels array), 502 (model service error)
+
+Requirements:
+- Accept the API key as the third parameter.
+- Raise a ValueError with a descriptive message on any non-2xx HTTP response,
+  including the status code and response body in the message.
+- Return the full parsed response dict on success.
+```
+
+### Production-ready
+
+Paste this prompt to generate a fully typed Python service class with error handling, retries, and environment-variable-based configuration.
+
+```text Production-ready prompt
+Write a production-quality Python module for integrating the ScaleDown classify API.
+
+API details:
+- Endpoint: POST https://api.scaledown.xyz/classify
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<text to classify>",
+      "labels": [
+        { "name": "<label name>", "rubric": "<yes/no question describing the label>" }
+      ]
+    }
+  Each label must have a "name" (short identifier) and a "rubric" (a yes/no question
+  phrased so that "yes" means the label applies).
+- Success response (JSON):
+    {
+      "top_label": "billing",
+      "scores": { "billing": 0.921, "technical": 0.034, "account": 0.029, "general": 0.016 },
+      "labels": [
+        { "label": "billing", "score": 0.921, "rubric": "..." },
+        ...
+      ]
+    }
+  All scores are softmax-normalised floats that sum to 1.0.
+- Error responses: 422 (malformed body or empty labels), 502 (model service unavailable)
+
+Apply these programming principles:
+
+1. Environment configuration — Load the API key from the environment variable
+   SCALEDOWN_API_KEY. Raise a clear ValueError at construction time if it is missing
+   or empty, with a message that tells the developer exactly what to set.
+
+2. Input type — Define a Label dataclass with fields: name (str), rubric (str).
+
+3. Typed result — Define a ClassifyResult dataclass with fields:
+     top_label (str), scores (dict[str, float]), labels (list[dict])
+
+4. Custom exception — Define a ScaleDownError exception class that carries
+   status_code (int) and message (str), and formats them into the exception message.
+
+5. Single-responsibility client — Implement a ScaleDownClassifyClient class with one
+   public method:
+     classify(text: str, labels: list[Label]) -> ClassifyResult
+   The class owns the requests.Session and sets the auth header once at __init__.
+
+6. Retry with exponential backoff — Inside classify(), on HTTP 502 or any 5xx status,
+   wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
+   Raise ScaleDownError after all three retries are exhausted.
+   Raise ScaleDownError immediately on 422 (not retriable).
+
+7. Type annotations — Add full type annotations to all functions, methods, and fields.
+   No module-level mutable state.
+```
+
+### FastAPI route classifier
+
+Paste this prompt to generate a FastAPI endpoint that classifies incoming text and routes it to a handler based on the top label.
+
+```text FastAPI route classifier prompt
+Write a FastAPI application that accepts a text payload, classifies it using the
+ScaleDown classify API, and routes it to a different handler function based on the
+top-scoring label.
+
+ScaleDown classify API details:
+- Endpoint: POST https://api.scaledown.xyz/classify
+- Auth: HTTP header `x-api-key: <your key>`
+- Request body (JSON):
+    {
+      "text": "<text to classify>",
+      "labels": [
+        { "name": "<label name>", "rubric": "<yes/no question>" }
+      ]
+    }
+- Success response (JSON):
+    {
+      "top_label": "billing",
+      "scores": { "billing": 0.921, "technical": 0.034 },
+      "labels": [ { "label": "billing", "score": 0.921, "rubric": "..." }, ... ]
+    }
+- Error responses: 422 (bad request), 502 (model error)
+
+Requirements:
+
+1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ.
+   Raise RuntimeError with a clear message if the variable is absent.
+
+2. Labels — Use these four support-ticket labels:
+     - billing: "Is this text about a billing issue, charge, refund, or payment problem?"
+     - technical: "Is this text about a technical problem, bug, or product not working correctly?"
+     - account: "Is this text about account access, login, password, or account settings?"
+     - general: "Is this a general question or inquiry that does not fit a specific support category?"
+
+3. Route handlers — Implement four stub async functions:
+     handle_billing(text: str) -> str
+     handle_technical(text: str) -> str
+     handle_account(text: str) -> str
+     handle_general(text: str) -> str
+   Each should return a string like "Routed to billing team: <text>".
+
+4. Confidence threshold — If the top label's score is below 0.5, skip routing and
+   return a 200 response with body: { "routed": false, "reason": "low confidence", "scores": {...} }
+
+5. Main endpoint — POST /triage accepts { "text": str } and returns:
+     { "routed": true, "label": "<top_label>", "score": <float>, "response": "<handler output>" }
+
+6. Error handling — If the ScaleDown API returns a non-2xx response, return a 502
+   response with the error details rather than crashing.
+```
+
+---
+
+## What the production prompt generates
+
+The production-ready prompt instructs the AI to apply seven programming principles. Here is an example of the code it produces:
+
+<Tip>
+**Principles encoded in the production-ready prompt:** environment-variable config, typed Label input, typed result dataclass, custom exception class, single-responsibility service client, retry with exponential backoff, full type annotations.
+</Tip>
+
+<Expandable title="Example output from the production-ready prompt">
+
+```python
+import os
+import time
+import requests
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass
+class Label:
+    name: str
+    rubric: str
+
+
+@dataclass
+class ClassifyResult:
+    top_label: str
+    scores: dict[str, float]
+    labels: list[dict[str, Any]]
+
+
+class ScaleDownError(Exception):
+    def __init__(self, status_code: int, message: str) -> None:
+        super().__init__(f"ScaleDown API error {status_code}: {message}")
+        self.status_code = status_code
+        self.message = message
+
+
+class ScaleDownClassifyClient:
+    BASE_URL = "https://api.scaledown.xyz/classify"
+
+    def __init__(self) -> None:
+        api_key = os.environ.get("SCALEDOWN_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "SCALEDOWN_API_KEY environment variable is missing or empty. "
+                "Set it with: export SCALEDOWN_API_KEY=your_key_here"
+            )
+        self._session = requests.Session()
+        self._session.headers.update({"x-api-key": api_key})
+
+    def classify(self, text: str, labels: list[Label]) -> ClassifyResult:
+        payload = {
+            "text": text,
+            "labels": [{"name": l.name, "rubric": l.rubric} for l in labels],
+        }
+        retry_delays = [2, 4, 8]
+        last_error: ScaleDownError | None = None
+
+        for attempt in range(len(retry_delays) + 1):
+            if attempt > 0:
+                time.sleep(retry_delays[attempt - 1])
+
+            response = self._session.post(self.BASE_URL, json=payload)
+
+            if response.ok:
+                data = response.json()
+                return ClassifyResult(
+                    top_label=data["top_label"],
+                    scores=data["scores"],
+                    labels=data["labels"],
+                )
+
+            if response.status_code in {502, 500, 503, 504}:
+                last_error = ScaleDownError(response.status_code, response.text)
+                continue  # retry
+
+            # 422: not retriable
+            raise ScaleDownError(response.status_code, response.text)
+
+        raise last_error  # type: ignore[misc]
+```
+
+Usage:
+
+```python
+import os
+
+os.environ["SCALEDOWN_API_KEY"] = "your_key_here"
+
+client = ScaleDownClassifyClient()
+result = client.classify(
+    text="I was charged twice for my subscription this month.",
+    labels=[
+        Label("billing",   "Is this text about a billing issue, charge, refund, or payment problem?"),
+        Label("technical", "Is this text about a technical problem, bug, or product not working correctly?"),
+        Label("account",   "Is this text about account access, login, password, or account settings?"),
+        Label("general",   "Is this a general question or inquiry that does not fit a specific support category?"),
+    ],
+)
+print(result.top_label)   # "billing"
+print(result.scores)      # {"billing": 0.921, "technical": 0.034, ...}
+```
+
+</Expandable>
