@@ -256,6 +256,29 @@ In this example:
 - `Company` uses threshold `0.7` and returns up to 5 results (global `top_n`)
 - `Email` uses the global threshold `0.5` and returns up to 5 results
 
+## Writing good entity labels
+
+The entity name and description are both used as part of the model's search criteria — wording them well is the biggest lever you have on extraction quality.
+
+**Use lowercase or Title Case.** The model was trained with lowercase labels. Keeping your entity names lowercase (e.g. `person`, `company`) or Title Case (e.g. `Person`, `Company`) produces better results than ALL_CAPS or other conventions.
+
+**Be specific with names, and test synonyms.** The entity name itself influences what the model looks for. `person` and `full name` will find slightly different things. If results are missing or noisy, try rephrasing the name — `person name`, `individual`, or `full name` may all behave differently on your data.
+
+**Labels can be descriptive phrases, not just single words.** Instead of `city`, use `capital city and population center`. The extra context helps the model distinguish between entity types that might otherwise overlap.
+
+**Descriptions can be full instructions.** Rather than `"Name of the person"`, write `"Find the first and last name of the person mentioned in the text"`. Instruction-style descriptions consistently outperform short noun phrases on complex or ambiguous entities.
+
+**Avoid mixing overlapping granularities in the same call.** If you include both `location` and `city`, the model has to decide which label to assign to a city — and will often split results unpredictably between them. Pick one level of granularity per concept.
+
+**Examples:**
+
+| Instead of | Use |
+|---|---|
+| `CITY` | `city` or `City` |
+| `city` + `location` in the same call | just `city` or just `location` |
+| `"Name"` | `"Find the first and last name of the person in the text"` |
+| `"city"` (when you want capitals specifically) | `"capital city and population center"` |
+
 ## Notes
 
 - Results within each entity type are ranked by confidence descending before `top_n` is applied.
