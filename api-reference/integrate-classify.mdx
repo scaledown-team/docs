@@ -12,7 +12,7 @@ Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate 
 Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
 
 ```text Quick integration prompt
-Write a Python function `classify_text(text: str, labels: list[dict], api_key: str) -> dict`
+Write a Python function `classify_text(payload: dict, labels: list[dict], api_key: str) -> dict`
 that calls the ScaleDown classify API and returns the full response as a dict.
 
 API details:
@@ -20,11 +20,15 @@ API details:
 - Auth: HTTP header `x-api-key: <your key>`
 - Request body (JSON):
     {
-      "text": "<text to classify>",
+      "text": "<text to classify>",              // optional if document is provided
+      "document": "<base64-encoded file>",        // optional; image or PDF
+      "document_mime_type": "image/jpeg",         // required when document is set
       "labels": [
         { "name": "<label name>", "rubric": "<yes/no question>" }
       ]
     }
+  Either "text" or "document" must be provided. If both are given, OCR text is appended
+  after the plain text before classification.
 - Success response (JSON):
     {
       "top_label": "medical",
@@ -32,11 +36,15 @@ API details:
       "labels": [
         { "label": "medical", "score": 0.887, "rubric": "..." },
         ...
-      ]
+      ],
+      "ocr_text": null    // populated when a document was processed
     }
-- Error responses: 422 (malformed body or empty labels array), 502 (model service error)
+- Error responses: 422 (malformed body, neither text nor document, empty labels array,
+  or OCR failure), 500 (server error), 504 (timeout)
 
 Requirements:
+- The payload parameter is a dict that may contain "text", "document", and
+  "document_mime_type" keys. Pass it through to the request body along with "labels".
 - Accept the API key as the third parameter.
 - Raise a ValueError with a descriptive message on any non-2xx HTTP response,
   including the status code and response body in the message.
@@ -55,11 +63,15 @@ API details:
 - Auth: HTTP header `x-api-key: <your key>`
 - Request body (JSON):
     {
-      "text": "<text to classify>",
+      "text": "<text to classify>",              // optional if document is provided
+      "document": "<base64-encoded file>",        // optional; image or PDF
+      "document_mime_type": "image/jpeg",         // required when document is set
       "labels": [
         { "name": "<label name>", "rubric": "<yes/no question describing the label>" }
       ]
     }
+  Either "text" or "document" must be provided. If both are given, OCR text is appended
+  after the plain text before classification.
   Each label must have a "name" (short identifier) and a "rubric" (a yes/no question
   phrased so that "yes" means the label applies).
 - Success response (JSON):
@@ -69,10 +81,12 @@ API details:
       "labels": [
         { "label": "billing", "score": 0.921, "rubric": "..." },
         ...
-      ]
+      ],
+      "ocr_text": "<raw OCR text>" | null    // populated when a document was processed
     }
   All scores are softmax-normalised floats that sum to 1.0.
-- Error responses: 422 (malformed body or empty labels), 502 (model service unavailable)
+- Error responses: 422 (malformed body, neither text nor document, empty labels, or OCR
+  failure), 500 (server error), 504 (timeout)
 
 Apply these programming principles:
 
@@ -83,17 +97,24 @@ Apply these programming principles:
 2. Input type — Define a Label dataclass with fields: name (str), rubric (str).
 
 3. Typed result — Define a ClassifyResult dataclass with fields:
-     top_label (str), scores (dict[str, float]), labels (list[dict])
+     top_label (str), scores (dict[str, float]), labels (list[dict]),
+     ocr_text (str | None)
 
 4. Custom exception — Define a ScaleDownError exception class that carries
    status_code (int) and message (str), and formats them into the exception message.
 
 5. Single-responsibility client — Implement a ScaleDownClassifyClient class with one
    public method:
-     classify(text: str, labels: list[Label]) -> ClassifyResult
+     classify(
+       labels: list[Label],
+       text: str | None = None,
+       document: str | None = None,
+       document_mime_type: str | None = None,
+     ) -> ClassifyResult
    The class owns the requests.Session and sets the auth header once at __init__.
+   Omit "document" and "document_mime_type" from the payload when they are None.
 
-6. Retry with exponential backoff — Inside classify(), on HTTP 502 or any 5xx status,
+6. Retry with exponential backoff — Inside classify(), on HTTP 5xx or 504 status,
    wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
    Raise ScaleDownError after all three retries are exhausted.
    Raise ScaleDownError immediately on 422 (not retriable).
@@ -107,8 +128,8 @@ Apply these programming principles:
 Paste this prompt to generate a FastAPI endpoint that classifies incoming text and routes it to a handler based on the top label.
 
 ```text FastAPI route classifier prompt
-Write a FastAPI application that accepts a text payload, classifies it using the
-ScaleDown classify API, and routes it to a different handler function based on the
+Write a FastAPI application that accepts a text or document payload, classifies it using
+the ScaleDown classify API, and routes it to a different handler function based on the
 top-scoring label.
 
 ScaleDown classify API details:
@@ -116,18 +137,23 @@ ScaleDown classify API details:
 - Auth: HTTP header `x-api-key: <your key>`
 - Request body (JSON):
     {
-      "text": "<text to classify>",
+      "text": "<text to classify>",              // optional if document is provided
+      "document": "<base64-encoded file>",        // optional; image or PDF
+      "document_mime_type": "image/jpeg",         // required when document is set
       "labels": [
         { "name": "<label name>", "rubric": "<yes/no question>" }
       ]
     }
+  Either "text" or "document" must be provided.
 - Success response (JSON):
     {
       "top_label": "billing",
       "scores": { "billing": 0.921, "technical": 0.034 },
-      "labels": [ { "label": "billing", "score": 0.921, "rubric": "..." }, ... ]
+      "labels": [ { "label": "billing", "score": 0.921, "rubric": "..." }, ... ],
+      "ocr_text": "<raw OCR text>" | null
     }
-- Error responses: 422 (bad request), 502 (model error)
+- Error responses: 422 (bad request, neither text nor document, or OCR failure),
+  500 (server error), 504 (timeout)
 
 Requirements:
 
@@ -150,7 +176,8 @@ Requirements:
 4. Confidence threshold — If the top label's score is below 0.5, skip routing and
    return a 200 response with body: { "routed": false, "reason": "low confidence", "scores": {...} }
 
-5. Main endpoint — POST /triage accepts { "text": str } and returns:
+5. Main endpoint — POST /triage accepts { "text": str | None, "document": str | None,
+   "document_mime_type": str | None } and returns:
      { "routed": true, "label": "<top_label>", "score": <float>, "response": "<handler output>" }
 
 6. Error handling — If the ScaleDown API returns a non-2xx response, return a 502
@@ -188,6 +215,7 @@ class ClassifyResult:
     top_label: str
     scores: dict[str, float]
     labels: list[dict[str, Any]]
+    ocr_text: str | None
 
 
 class ScaleDownError(Exception):
@@ -210,11 +238,21 @@ class ScaleDownClassifyClient:
         self._session = requests.Session()
         self._session.headers.update({"x-api-key": api_key})
 
-    def classify(self, text: str, labels: list[Label]) -> ClassifyResult:
-        payload = {
-            "text": text,
-            "labels": [{"name": l.name, "rubric": l.rubric} for l in labels],
-        }
+    def classify(
+        self,
+        labels: list[Label],
+        text: str | None = None,
+        document: str | None = None,
+        document_mime_type: str | None = None,
+    ) -> ClassifyResult:
+        payload: dict = {"labels": [{"name": l.name, "rubric": l.rubric} for l in labels]}
+        if text is not None:
+            payload["text"] = text
+        if document is not None:
+            payload["document"] = document
+        if document_mime_type is not None:
+            payload["document_mime_type"] = document_mime_type
+
         retry_delays = [2, 4, 8]
         last_error: ScaleDownError | None = None
 
@@ -230,9 +268,10 @@ class ScaleDownClassifyClient:
                     top_label=data["top_label"],
                     scores=data["scores"],
                     labels=data["labels"],
+                    ocr_text=data.get("ocr_text"),
                 )
 
-            if response.status_code in {502, 500, 503, 504}:
+            if response.status_code in {500, 503, 504}:
                 last_error = ScaleDownError(response.status_code, response.text)
                 continue  # retry
 
@@ -251,13 +290,13 @@ os.environ["SCALEDOWN_API_KEY"] = "your_key_here"
 
 client = ScaleDownClassifyClient()
 result = client.classify(
-    text="I was charged twice for my subscription this month.",
     labels=[
         Label("billing",   "Is this text about a billing issue, charge, refund, or payment problem?"),
         Label("technical", "Is this text about a technical problem, bug, or product not working correctly?"),
         Label("account",   "Is this text about account access, login, password, or account settings?"),
         Label("general",   "Is this a general question or inquiry that does not fit a specific support category?"),
     ],
+    text="I was charged twice for my subscription this month.",
 )
 print(result.top_label)   # "billing"
 print(result.scores)      # {"billing": 0.921, "technical": 0.034, ...}
