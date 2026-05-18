@@ -3,10 +3,6 @@ title: "Extract"
 description: "Pull structured data from unstructured text using a schema you define in plain English."
 ---
 
-<Note>
-  **Extract is currently in private preview.** Access is available by invitation. To request early access or get onboarded, [contact us](https://app.reclaim.ai/m/neal-scaledown/25-min).
-</Note>
-
 ## What it does
 
 The `/extract` endpoint runs Named Entity Recognition (NER) over arbitrary text — but instead of a fixed set of entity types (person, place, organization), you define exactly what you're looking for in plain English. The model interprets your descriptions and finds matching spans in the text, returning each one with a confidence score, character offsets, and surrounding context.
@@ -64,3 +60,5 @@ The entity name and description are treated as part of the model's prompt — ho
 | Confidence scores | Varies by model | Always included |
 | Per-entity thresholds | Not typically supported | Supported |
 | Context window | Usually sentence-level | Full document |
+| Structured / nested output | Not supported | Supported via nested object and array schemas |
+| Document / image input | Not supported | Supported via base64 + OCR |

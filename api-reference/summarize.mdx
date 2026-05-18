@@ -10,8 +10,16 @@ The `/summarization/abstractive` endpoint condenses text in the model's own word
 
 ## Request
 
-<ParamField body="text" type="string" required>
-  The input text to summarize. Can be an article, document, transcript, or any plain text string.
+<ParamField body="text" type="string">
+  The input text to summarize. Can be an article, document, transcript, or any plain text string. Either `text` or `document` must be provided. If both are given, the OCR text is appended after `text`.
+</ParamField>
+
+<ParamField body="document" type="string">
+  A base64-encoded file to summarize. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input. Either `text` or `document` must be provided.
+</ParamField>
+
+<ParamField body="document_mime_type" type="string">
+  MIME type of the document (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
 </ParamField>
 
 <ParamField body="instructions" type="string">
@@ -46,14 +54,17 @@ The `/summarization/abstractive` endpoint condenses text in the model's own word
   End-to-end request latency in milliseconds.
 </ResponseField>
 
+<ResponseField name="ocr_text" type="string | null">
+  The raw text extracted from the document via OCR. `null` if no `document` was provided.
+</ResponseField>
+
 ## Error responses
 
 | Status | Meaning |
 |--------|---------|
-| `400 Bad Request` | Malformed request body or missing required fields. |
-| `401 Unauthorized` | Missing or invalid `x-api-key`. |
-| `429 Too Many Requests` | Rate limit exceeded. Back off and retry. |
+| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, or OCR failed. |
 | `500 Internal Server Error` | Inference service unavailable. |
+| `504 Gateway Timeout` | Summarization request timed out. |
 
 ## Authentication
 
@@ -184,6 +195,83 @@ const data = await response.json();
   "latency_ms": 3241
 }
 ```
+
+### Summarizing a document
+
+Pass a base64-encoded image or PDF in the `document` field. The OCR text is extracted automatically and summarized. The raw OCR output is returned as `ocr_text`.
+
+<CodeGroup>
+
+```bash cURL
+DOCUMENT=$(base64 -b 0 -i report.pdf)
+
+curl -X POST https://api.scaledown.xyz/summarization/abstractive \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "document": "'"$DOCUMENT"'",
+    "document_mime_type": "application/pdf",
+    "instructions": "Use bullet points. Focus on key figures and decisions only."
+  }'
+```
+
+```python Python
+import base64
+import requests
+
+with open("report.pdf", "rb") as f:
+    document = base64.b64encode(f.read()).decode()
+
+response = requests.post(
+    "https://api.scaledown.xyz/summarization/abstractive",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "document": document,
+        "document_mime_type": "application/pdf",
+        "instructions": "Use bullet points. Focus on key figures and decisions only.",
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+import fs from "fs";
+
+const document = fs.readFileSync("report.pdf").toString("base64");
+
+const response = await fetch(
+  "https://api.scaledown.xyz/summarization/abstractive",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": "<your-api-key>",
+    },
+    body: JSON.stringify({
+      document,
+      document_mime_type: "application/pdf",
+      instructions: "Use bullet points. Focus on key figures and decisions only.",
+    }),
+  }
+);
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "summary": "- Q3 revenue reached $4.2B, up 12% year-over-year.\n- Board approved a $500M share buyback program.\n- CEO announced Southeast Asian expansion by mid-2027.",
+  "input_chars": 12480,
+  "output_chars": 178,
+  "latency_ms": 4103,
+  "ocr_text": "Q3 2024 Earnings Report\nRevenue: $4.2 billion (+12% YoY)\n..."
+}
+```
+
+---
 
 ## Notes
 
