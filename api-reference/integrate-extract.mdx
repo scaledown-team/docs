@@ -23,6 +23,7 @@ API details:
       "text": "<the document or passage to search>",       // optional if document is provided
       "document": "<base64-encoded file>",                 // optional; image or PDF
       "document_mime_type": "image/jpeg",                  // required when document is set
+      "instruction": "<optional global instruction>",      // optional; prepended before the text
       "entities": {
         "<EntityTypeName>": "<plain English description of what to look for>"
         // values can also be nested objects or arrays — see structured extraction below
@@ -31,6 +32,8 @@ API details:
   Either "text" or "document" must be provided. If both are given, OCR text is appended
   after the plain text before extraction. The keys in "entities" are names you choose
   (e.g. "Name", "Email", "Company"). The values are descriptions of what each key should match.
+  The optional "instruction" field is prepended before the text and applies globally across
+  all entity types — use it for deduplication rules, ranking constraints, or output format requirements.
 - Success response (JSON):
     {
       "entities": [
@@ -82,6 +85,7 @@ API details:
       "text": "<document or passage to search>",          // optional if document is provided
       "document": "<base64-encoded file>",                // optional; image or PDF
       "document_mime_type": "application/pdf",            // required when document is set
+      "instruction": "<optional global instruction>",     // optional; prepended before the text
       "entities": {
         "<TypeName>": "<description string>"
           | {
@@ -96,7 +100,8 @@ API details:
       "top_n": 0         // optional global max results per type, default 0 (unlimited)
     }
   Either "text" or "document" must be provided. If both are given, the OCR text is
-  appended after the plain text before extraction.
+  appended after the plain text before extraction. The optional "instruction" field is
+  prepended before the text and applies globally across all entity types.
 - Success response (JSON):
     {
       "entities": [
