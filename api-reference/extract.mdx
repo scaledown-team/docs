@@ -24,6 +24,10 @@ Every result includes up to 500 characters of surrounding text on each side, so 
   MIME type of the document (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
 </ParamField>
 
+<ParamField body="instruction" type="string">
+  Optional global instruction prepended to the text before extraction. Use this to provide rules that apply across all entity types — for example, deduplication logic, ranking constraints, or output format requirements. This is separate from per-entity descriptions.
+</ParamField>
+
 <ParamField body="entities" type="object" required>
   A mapping of entity type names to their definition. Each value can be one of:
 
