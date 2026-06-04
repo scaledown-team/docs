@@ -5,14 +5,13 @@ description: "Use /classify to route requests to different language models based
 
 # Guide: LLM Model Routing
 
-**ScaleDown Team** • April 2026 • 8 min read
 
 Not every request needs your most expensive model. A simple factual lookup doesn't need GPT-4o. A one-line code fix doesn't need Claude Opus. But a complex multi-step reasoning problem probably does.
 
 The `/classify` endpoint lets you inspect incoming requests and route them to the right model before you spend tokens on the wrong one. Define labels that describe task types, score each request against them, and dispatch to whichever model handles that task best.
 
 <Tip>
-This guide builds a **model router** that classifies incoming prompts by complexity and type, then dispatches each one to the appropriate LLM. The same pattern works with any set of models — swap in whatever providers and models fit your stack.
+This guide builds a **model router** that classifies incoming prompts by complexity and type, then dispatches each one to the appropriate LLM. The same pattern works with any set of models - swap in whatever providers and models fit your stack.
 </Tip>
 
 ---
@@ -45,7 +44,7 @@ graph LR
 
 ## Define your routing labels
 
-The labels describe the kinds of tasks you want to route differently. Good routing labels are based on what the task *requires* — not what topic it's about.
+The labels describe the kinds of tasks you want to route differently. Good routing labels are based on what the task *requires* - not what topic it's about.
 
 ```python
 LABELS = [
@@ -282,11 +281,11 @@ The savings depend on your traffic mix, but routing even 40% of requests to a ch
 
 | Scenario | Without routing | With routing |
 |---|---|---|
-| 1M requests/day, all to `claude-opus` | ~$15,000/day | — |
+| 1M requests/day, all to `claude-opus` | ~$15,000/day | - |
 | 50% simple, 30% coding, 20% reasoning | ~$15,000/day | ~$4,800/day |
-| Savings | — | **~68%** |
+| Savings | - | **~68%** |
 
-The classify call itself adds a small latency cost (typically 50–150ms) and a negligible token cost — far less than the savings from routing simple requests away from expensive models.
+The classify call itself adds a small latency cost (typically 50–150ms) and a negligible token cost - far less than the savings from routing simple requests away from expensive models.
 
 ---
 
@@ -303,6 +302,6 @@ The classify call itself adds a small latency cost (typically 50–150ms) and a 
     When confidence is low, fall back to a capable middle-tier model rather than the cheapest or the most expensive. Uncertain inputs rarely need your best model, but they do need something reliable.
   </Card>
   <Card title="Overlap is a signal, not a bug" icon="magnifying-glass">
-    If `coding` and `reasoning` frequently score close together, that's telling you something about your traffic — complex coding tasks genuinely sit at the boundary. Consider merging them or adding a dedicated label.
+    If `coding` and `reasoning` frequently score close together, that's telling you something about your traffic - complex coding tasks genuinely sit at the boundary. Consider merging them or adding a dedicated label.
   </Card>
 </CardGroup>
