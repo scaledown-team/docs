@@ -80,7 +80,13 @@
               "generic-prompt-compression/modular-prompt-optimization"
             ]
           },
-          "code_compression/pareto_merging"
+          {
+            "group": "Pareto Merging",
+            "icon": "chart-line",
+            "pages": [
+              "code_compression/pareto_merging"
+            ]
+          }
         ]
       }
     ]
