@@ -11,7 +11,7 @@ The `/compress/raw/` endpoint compresses your prompt and context, reducing token
 ## Request
 
 <ParamField body="context" type="string" required>
-  Background information, instructions, or supporting text that provides context for the prompt. This is the content most aggressively compressed — structure and meaning are preserved, but redundancy is removed.
+  Background information, instructions, or supporting text that provides context for the prompt. This is the content most aggressively compressed - structure and meaning are preserved, but redundancy is removed.
 </ParamField>
 
 <ParamField body="prompt" type="string" required>
@@ -56,7 +56,7 @@ The `/compress/raw/` endpoint compresses your prompt and context, reducing token
       Time spent on compression in milliseconds.
     </ResponseField>
     <ResponseField name="compression_rate" type="string | number">
-      The compression rate that was applied — either `"auto"` or the numeric value provided.
+      The compression rate that was applied - either `"auto"` or the numeric value provided.
     </ResponseField>
     <ResponseField name="prompt_length" type="number">
       Character length of the original input.
@@ -209,5 +209,5 @@ const data = await response.json();
 ## Notes
 
 - `"auto"` rate is recommended for most use cases. Fixed rates below `0.3` may noticeably affect output quality on dense technical content.
-- The `compressed_prompt` field is a single string — pass it as the full prompt to your downstream model, replacing both `context` and `prompt`.
+- The `compressed_prompt` field is a single string - pass it as the full prompt to your downstream model, replacing both `context` and `prompt`.
 - Token counts are estimated using the same tokenizer as the target model family. Exact counts may vary slightly depending on the model you use downstream.

@@ -9,7 +9,7 @@ Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate 
 
 ### Quick integration
 
-Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
+Paste this prompt to generate a minimal Python function - useful for prototyping or one-off scripts.
 
 ```text Quick integration prompt
 Write a Python function `classify_text(payload: dict, labels: list[dict], api_key: str) -> dict`
@@ -90,20 +90,20 @@ API details:
 
 Apply these programming principles:
 
-1. Environment configuration — Load the API key from the environment variable
+1. Environment configuration - Load the API key from the environment variable
    SCALEDOWN_API_KEY. Raise a clear ValueError at construction time if it is missing
    or empty, with a message that tells the developer exactly what to set.
 
-2. Input type — Define a Label dataclass with fields: name (str), rubric (str).
+2. Input type - Define a Label dataclass with fields: name (str), rubric (str).
 
-3. Typed result — Define a ClassifyResult dataclass with fields:
+3. Typed result - Define a ClassifyResult dataclass with fields:
      top_label (str), scores (dict[str, float]), labels (list[dict]),
      ocr_text (str | None)
 
-4. Custom exception — Define a ScaleDownError exception class that carries
+4. Custom exception - Define a ScaleDownError exception class that carries
    status_code (int) and message (str), and formats them into the exception message.
 
-5. Single-responsibility client — Implement a ScaleDownClassifyClient class with one
+5. Single-responsibility client - Implement a ScaleDownClassifyClient class with one
    public method:
      classify(
        labels: list[Label],
@@ -114,12 +114,12 @@ Apply these programming principles:
    The class owns the requests.Session and sets the auth header once at __init__.
    Omit "document" and "document_mime_type" from the payload when they are None.
 
-6. Retry with exponential backoff — Inside classify(), on HTTP 5xx or 504 status,
+6. Retry with exponential backoff - Inside classify(), on HTTP 5xx or 504 status,
    wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
    Raise ScaleDownError after all three retries are exhausted.
    Raise ScaleDownError immediately on 422 (not retriable).
 
-7. Type annotations — Add full type annotations to all functions, methods, and fields.
+7. Type annotations - Add full type annotations to all functions, methods, and fields.
    No module-level mutable state.
 ```
 
@@ -157,30 +157,30 @@ ScaleDown classify API details:
 
 Requirements:
 
-1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ.
+1. Environment configuration - Load SCALEDOWN_API_KEY from os.environ.
    Raise RuntimeError with a clear message if the variable is absent.
 
-2. Labels — Use these four support-ticket labels:
+2. Labels - Use these four support-ticket labels:
      - billing: "Is this text about a billing issue, charge, refund, or payment problem?"
      - technical: "Is this text about a technical problem, bug, or product not working correctly?"
      - account: "Is this text about account access, login, password, or account settings?"
      - general: "Is this a general question or inquiry that does not fit a specific support category?"
 
-3. Route handlers — Implement four stub async functions:
+3. Route handlers - Implement four stub async functions:
      handle_billing(text: str) -> str
      handle_technical(text: str) -> str
      handle_account(text: str) -> str
      handle_general(text: str) -> str
    Each should return a string like "Routed to billing team: <text>".
 
-4. Confidence threshold — If the top label's score is below 0.5, skip routing and
+4. Confidence threshold - If the top label's score is below 0.5, skip routing and
    return a 200 response with body: { "routed": false, "reason": "low confidence", "scores": {...} }
 
-5. Main endpoint — POST /triage accepts { "text": str | None, "document": str | None,
+5. Main endpoint - POST /triage accepts { "text": str | None, "document": str | None,
    "document_mime_type": str | None } and returns:
      { "routed": true, "label": "<top_label>", "score": <float>, "response": "<handler output>" }
 
-6. Error handling — If the ScaleDown API returns a non-2xx response, return a 502
+6. Error handling - If the ScaleDown API returns a non-2xx response, return a 502
    response with the error details rather than crashing.
 ```
 

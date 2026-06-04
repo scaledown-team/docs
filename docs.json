@@ -2,9 +2,9 @@
   "name": "ScaleDown",
   "theme": "mint",
   "colors": {
-    "primary": "#263AED",
-    "light": "#263AED",
-    "dark": "#117866"
+    "primary": "#147ce4",
+    "light": "#3d96f0",
+    "dark": "#0f62c0"
   },
   "openapi": "api-reference/openapi.json",
   "api": {

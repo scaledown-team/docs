@@ -5,7 +5,7 @@ description: "Pull structured data from unstructured text using a schema you def
 
 ## What it does
 
-The `/extract` endpoint runs Named Entity Recognition (NER) over arbitrary text — but instead of a fixed set of entity types (person, place, organization), you define exactly what you're looking for in plain English. The model interprets your descriptions and finds matching spans in the text, returning each one with a confidence score, character offsets, and surrounding context.
+The `/extract` endpoint runs Named Entity Recognition (NER) over arbitrary text - but instead of a fixed set of entity types (person, place, organization), you define exactly what you're looking for in plain English. The model interprets your descriptions and finds matching spans in the text, returning each one with a confidence score, character offsets, and surrounding context.
 
 This makes it practical to extract domain-specific entities that generic NER models don't support: contract parties, product SKUs, medical terms, financial figures, custom identifiers, or anything else you can describe.
 
@@ -13,7 +13,7 @@ This makes it practical to extract domain-specific entities that generic NER mod
 
 **You need structured data from unstructured text.** If your pipeline involves parsing documents, emails, web pages, or transcripts to pull out specific values, Extract replaces brittle regex patterns and rigid NLP pipelines with a flexible, description-driven approach.
 
-**Your entity types don't fit standard NER.** Off-the-shelf NER handles names, locations, and organizations. Extract handles whatever you define — lease terms, part numbers, clinical findings, competitor mentions, or any other domain-specific concept.
+**Your entity types don't fit standard NER.** Off-the-shelf NER handles names, locations, and organizations. Extract handles whatever you define - lease terms, part numbers, clinical findings, competitor mentions, or any other domain-specific concept.
 
 **You need confidence scores.** Extract returns a confidence score for every result. You can set per-entity thresholds to filter out low-confidence hits, or use the scores to route extractions to a human review queue.
 
@@ -33,7 +33,7 @@ This makes it practical to extract domain-specific entities that generic NER mod
 
 ## How it fits into your workflow
 
-Extract sits between your document ingestion step and whatever system consumes structured data — a database, a downstream process, or a human review interface.
+Extract sits between your document ingestion step and whatever system consumes structured data - a database, a downstream process, or a human review interface.
 
 ```
 [Ingest document] → [POST /extract] → [Structured entity list] → [Database / downstream system]
@@ -43,7 +43,7 @@ Each entity in the response includes character offsets (`start`, `end`), so you 
 
 ## Tips for better results
 
-The entity name and description are treated as part of the model's prompt — how you phrase them directly affects extraction quality.
+The entity name and description are treated as part of the model's prompt - how you phrase them directly affects extraction quality.
 
 - **Use lowercase or Title Case labels.** The model was trained with lowercase entity names. `person`, `company`, and `date` work better than `PERSON` or `DATE`.
 - **Be specific, and test synonyms.** `person` and `full name` find slightly different things. If results are missing or noisy, try rephrasing the label name.

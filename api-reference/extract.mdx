@@ -6,7 +6,7 @@ description: "Extract named entities from text using a custom-defined schema."
 
 ## Overview
 
-The `/extract` endpoint runs Named Entity Recognition (NER) over a block of text. Unlike standard NER, you define the entity types you want in plain English — the model uses your descriptions to find matching spans, returning each one with a confidence score and surrounding context.
+The `/extract` endpoint runs Named Entity Recognition (NER) over a block of text. Unlike standard NER, you define the entity types you want in plain English - the model uses your descriptions to find matching spans, returning each one with a confidence score and surrounding context.
 
 Every result includes up to 500 characters of surrounding text on each side, so you can validate or use the extracted value without going back to the source.
 
@@ -25,16 +25,16 @@ Every result includes up to 500 characters of surrounding text on each side, so 
 </ParamField>
 
 <ParamField body="instruction" type="string">
-  Optional global instruction prepended to the text before extraction. Use this to provide rules that apply across all entity types — for example, deduplication logic, ranking constraints, or output format requirements. This is separate from per-entity descriptions.
+  Optional global instruction prepended to the text before extraction. Use this to provide rules that apply across all entity types - for example, deduplication logic, ranking constraints, or output format requirements. This is separate from per-entity descriptions.
 </ParamField>
 
 <ParamField body="entities" type="object" required>
   A mapping of entity type names to their definition. Each value can be one of:
 
-  - A **plain string** — a description of what to look for
-  - An **object** — with optional `description`, `threshold`, and `top_n` fields
-  - A **nested object** — defining a structured sub-schema (object with named fields)
-  - An **array of objects** — defining a repeated structured schema (e.g. a list of line items)
+  - A **plain string** - a description of what to look for
+  - An **object** - with optional `description`, `threshold`, and `top_n` fields
+  - A **nested object** - defining a structured sub-schema (object with named fields)
+  - An **array of objects** - defining a repeated structured schema (e.g. a list of line items)
 
   <Expandable title="Entity object fields">
     <ParamField body="description" type="string">
@@ -280,7 +280,7 @@ For more complex documents, you can define nested schemas to extract structured 
 
 The full structured output is returned in the `structured_result` field. Scalar fields in the same request are also included there, alongside any nested values.
 
-**Nested object example — extract a single structured address:**
+**Nested object example - extract a single structured address:**
 
 <CodeGroup>
 
@@ -378,7 +378,7 @@ const data = await response.json();
 
 ---
 
-**Array schema example — extract invoice line items:**
+**Array schema example - extract invoice line items:**
 
 <CodeGroup>
 
@@ -550,17 +550,17 @@ In this example:
 
 ## Writing good entity labels
 
-The entity name and description are both used as part of the model's search criteria — wording them well is the biggest lever you have on extraction quality.
+The entity name and description are both used as part of the model's search criteria - wording them well is the biggest lever you have on extraction quality.
 
 **Use lowercase or Title Case.** The model was trained with lowercase labels. Keeping your entity names lowercase (e.g. `person`, `company`) or Title Case (e.g. `Person`, `Company`) produces better results than ALL_CAPS or other conventions.
 
-**Be specific with names, and test synonyms.** The entity name itself influences what the model looks for. `person` and `full name` will find slightly different things. If results are missing or noisy, try rephrasing the name — `person name`, `individual`, or `full name` may all behave differently on your data.
+**Be specific with names, and test synonyms.** The entity name itself influences what the model looks for. `person` and `full name` will find slightly different things. If results are missing or noisy, try rephrasing the name - `person name`, `individual`, or `full name` may all behave differently on your data.
 
 **Labels can be descriptive phrases, not just single words.** Instead of `city`, use `capital city and population center`. The extra context helps the model distinguish between entity types that might otherwise overlap.
 
 **Descriptions can be full instructions.** Rather than `"Name of the person"`, write `"Find the first and last name of the person mentioned in the text"`. Instruction-style descriptions consistently outperform short noun phrases on complex or ambiguous entities.
 
-**Avoid mixing overlapping granularities in the same call.** If you include both `location` and `city`, the model has to decide which label to assign to a city — and will often split results unpredictably between them. Pick one level of granularity per concept.
+**Avoid mixing overlapping granularities in the same call.** If you include both `location` and `city`, the model has to decide which label to assign to a city - and will often split results unpredictably between them. Pick one level of granularity per concept.
 
 **Examples:**
 
@@ -574,6 +574,6 @@ The entity name and description are both used as part of the model's search crit
 ## Notes
 
 - Results within each entity type are ranked by confidence descending before `top_n` is applied.
-- The `context` field is always derived from the original `text` input — it is not generated by the model.
+- The `context` field is always derived from the original `text` input - it is not generated by the model.
 - Character offsets (`start`, `end`) refer to byte positions in the original `text` string.
 - There is no fixed limit on the number of entity types you can define in a single request.

@@ -10,7 +10,7 @@
 
 ## Abstract
 
-Large Language Models (LLMs) often hallucinate—produce fluent but unsupported claims. We present a framework for *modular prompt optimization* that enables composing common prompt primitives and measuring their effect on hallucination rates across models and datasets. Our system treats prompt techniques as interchangeable modules, supports combinatorial experiments, and reports both core accuracy and hallucination-centric metrics. We include preliminary experiments on OpenAI’s SimpleQA benchmark using GPT‑4o as a case study and release code to facilitate replication and extension.
+Large Language Models (LLMs) often hallucinate-produce fluent but unsupported claims. We present a framework for *modular prompt optimization* that enables composing common prompt primitives and measuring their effect on hallucination rates across models and datasets. Our system treats prompt techniques as interchangeable modules, supports combinatorial experiments, and reports both core accuracy and hallucination-centric metrics. We include preliminary experiments on OpenAI’s SimpleQA benchmark using GPT‑4o as a case study and release code to facilitate replication and extension.
 
 ---
 
@@ -29,11 +29,11 @@ Our framework separates **(1) model backends**, **(2) task definitions**, **(3) 
 
 **Key components (files):**
 
-* `src/llms.py` — unified interface to supported providers
-* `src/task_runner.py` — experiment orchestration & checkpointing
-* `src/prompt_optimizer.py` — modular prompt techniques & combinations
-* `evaluate.py` — hallucination-centric evaluator
-* `experiments/` — Jupyter notebook(s) for result analysis
+* `src/llms.py` - unified interface to supported providers
+* `src/task_runner.py` - experiment orchestration & checkpointing
+* `src/prompt_optimizer.py` - modular prompt techniques & combinations
+* `evaluate.py` - hallucination-centric evaluator
+* `experiments/` - Jupyter notebook(s) for result analysis
 
 ---
 

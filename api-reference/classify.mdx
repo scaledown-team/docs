@@ -6,7 +6,7 @@ description: "Score text against a set of user-defined labels and return a proba
 
 ## Overview
 
-The `/classify` endpoint scores a piece of text against a set of labels you define and returns a softmax-normalised probability distribution. Each label is scored using a **rubric** — a yes/no question that describes what the label means. The label with the highest score is returned as `top_label`.
+The `/classify` endpoint scores a piece of text against a set of labels you define and returns a softmax-normalised probability distribution. Each label is scored using a **rubric** - a yes/no question that describes what the label means. The label with the highest score is returned as `top_label`.
 
 ## Request
 
@@ -23,7 +23,7 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 </ParamField>
 
 <ParamField body="labels" type="array" required>
-  One or more label definitions. Must contain at least one item — sending an empty array returns `422`.
+  One or more label definitions. Must contain at least one item - sending an empty array returns `422`.
 
   <Expandable title="Label fields">
     <ParamField body="name" type="string" required>
@@ -422,9 +422,9 @@ The rubric is the most important part of a classify request. It is phrased as a 
 3. Softmax normalisation is applied across all label scores so they sum to 1.0.
 4. The label with the highest normalised score is returned as `top_label`.
 
-The endpoint always returns a winner — even if the model is uncertain. If you need a confidence threshold, apply it yourself on the `scores` field.
+The endpoint always returns a winner - even if the model is uncertain. If you need a confidence threshold, apply it yourself on the `scores` field.
 
 ## Notes
 
 - There is no hard limit on the number of labels, but performance degrades with very large sets (>20) since each label requires a separate model call.
-- Scores are **relative**, not absolute. A top score of `0.4` in a 10-label request can still be the correct answer — it just means probability mass was spread across many labels.
+- Scores are **relative**, not absolute. A top score of `0.4` in a 10-label request can still be the correct answer - it just means probability mass was spread across many labels.

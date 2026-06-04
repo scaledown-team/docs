@@ -9,7 +9,7 @@ Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate 
 
 ### Quick integration
 
-Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
+Paste this prompt to generate a minimal Python function - useful for prototyping or one-off scripts.
 
 ```text Quick integration prompt
 Write a Python function `summarize_text(payload: dict, api_key: str,
@@ -29,7 +29,7 @@ API details:
     }
   Either "text" or "document" must be provided. If both are given, OCR text is appended
   after the plain text before summarization.
-  The "instructions" field is appended to the base faithful-summary behaviour —
+  The "instructions" field is appended to the base faithful-summary behaviour -
   it extends, not replaces, the default. Examples:
     "Use bullet points."
     "Focus on financial figures only."
@@ -94,18 +94,18 @@ API details:
 
 Apply these programming principles:
 
-1. Environment configuration — Load the API key from the environment variable
+1. Environment configuration - Load the API key from the environment variable
    SCALEDOWN_API_KEY. Raise a clear ValueError at construction time if it is missing
    or empty, with a message that tells the developer exactly which variable to set.
 
-2. Typed result — Define a SummaryResult dataclass with fields:
+2. Typed result - Define a SummaryResult dataclass with fields:
      summary (str), input_chars (int), output_chars (int), latency_ms (int),
      ocr_text (str | None)
 
-3. Custom exception — Define a ScaleDownError exception class that carries
+3. Custom exception - Define a ScaleDownError exception class that carries
    status_code (int) and message (str), and formats them into the exception message.
 
-4. Single-responsibility client — Implement a ScaleDownSummarizer class with one
+4. Single-responsibility client - Implement a ScaleDownSummarizer class with one
    public method:
      summarize(
        text: str | None = None,
@@ -117,12 +117,12 @@ Apply these programming principles:
    The class owns the requests.Session and sets the auth header once at __init__.
    Omit optional fields from the request payload when they are None.
 
-5. Retry with exponential backoff — Inside summarize(), on HTTP 5xx or 504 status,
+5. Retry with exponential backoff - Inside summarize(), on HTTP 5xx or 504 status,
    wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
    Raise ScaleDownError after all three retries are exhausted.
    Raise ScaleDownError immediately on 422 (not retriable).
 
-6. Type annotations — Add full type annotations to all functions, methods, and fields.
+6. Type annotations - Add full type annotations to all functions, methods, and fields.
    No module-level mutable state.
 ```
 
@@ -160,10 +160,10 @@ ScaleDown API details:
 
 Requirements:
 
-1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ at module load.
+1. Environment configuration - Load SCALEDOWN_API_KEY from os.environ at module load.
    Raise ValueError with a clear message if the variable is absent or empty.
 
-2. Input type — Define a SummarizeItem dataclass with fields:
+2. Input type - Define a SummarizeItem dataclass with fields:
      text (str | None), document (str | None), document_mime_type (str | None)
    At least one of text or document must be set per item.
 
@@ -177,21 +177,21 @@ Requirements:
    Returns summaries in the same order as the input list.
    Returns None at an index if that document permanently fails after all retries.
 
-4. Concurrency control — Use asyncio + aiohttp. Limit the number of simultaneous
+4. Concurrency control - Use asyncio + aiohttp. Limit the number of simultaneous
    in-flight requests with an asyncio.Semaphore initialized to the `concurrency`
    argument.
 
-5. Per-request retry with exponential backoff — For each individual request, retry
+5. Per-request retry with exponential backoff - For each individual request, retry
    up to 3 times on HTTP 5xx or 504 status: wait 2 s, 4 s, 8 s before retries
    1, 2, and 3. After 3 failures, store None for that index.
 
-6. Logging — Log a WARNING via the `logging` module for each document that permanently
+6. Logging - Log a WARNING via the `logging` module for each document that permanently
    fails, including its index and the final error.
 
-7. Omit optional fields — Do not include "instructions", "max_tokens", "document", or
+7. Omit optional fields - Do not include "instructions", "max_tokens", "document", or
    "document_mime_type" in the request payload when they are None.
 
-8. Entry point — Include an `if __name__ == "__main__":` block that calls
+8. Entry point - Include an `if __name__ == "__main__":` block that calls
    batch_summarize on a sample list of three SummarizeItem objects (text-only) and
    prints each summary.
 ```
