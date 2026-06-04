@@ -8,7 +8,9 @@
   },
   "openapi": "api-reference/openapi.json",
   "api": {
-    "baseUrl": ["https://api.scaledown.xyz"],
+    "baseUrl": [
+      "https://api.scaledown.xyz"
+    ],
     "auth": {
       "method": "key",
       "name": "x-api-key"
@@ -18,88 +20,50 @@
     "groups": [
       {
         "group": "Getting Started",
+        "icon": "rocket",
         "pages": [
-          "quickstart",
-          "workflow_example",
-          "rag_example"
+          "quickstart"
         ]
       },
       {
-        "group": "Endpoints",
+        "group": "Compress",
+        "icon": "compress",
         "pages": [
           "api-reference/compress-overview",
-          "api-reference/extract-overview",
+          "api-reference/compress",
+          "api-reference/integrate-compress"
+        ]
+      },
+      {
+        "group": "Summarize",
+        "icon": "align-left",
+        "pages": [
           "api-reference/summarize-overview",
-          "api-reference/classify-overview"
+          "api-reference/summarize",
+          "api-reference/integrate-summarize"
         ]
       },
       {
-        "group": "Guides",
+        "group": "Extract",
+        "icon": "scan-text",
         "pages": [
-          {
-            "group": "RAG",
-            "icon": "book-open",
-            "pages": [
-              "rag_legal",
-              "rag_ecommerce",
-              "rag_hr"
-            ]
-          },
-          {
-            "group": "Classify",
-            "icon": "route",
-            "pages": [
-              "classify_support_tickets",
-              "classify_model_routing"
-            ]
-          },
-          {
-            "group": "Integration Prompts",
-            "icon": "code",
-            "pages": [
-              "api-reference/integrate-compress",
-              "api-reference/integrate-extract",
-              "api-reference/integrate-summarize",
-              "api-reference/integrate-classify"
-            ]
-          }
+          "api-reference/extract-overview",
+          "api-reference/extract",
+          "api-reference/integrate-extract"
         ]
       },
       {
-        "group": "API Reference",
+        "group": "Classify",
+        "icon": "tags",
         "pages": [
-          {
-            "group": "Compress",
-            "icon": "compress",
-            "pages": [
-              "api-reference/compress"
-            ]
-          },
-          {
-            "group": "Extract",
-            "icon": "magnifying-glass",
-            "pages": [
-              "api-reference/extract"
-            ]
-          },
-          {
-            "group": "Summarize",
-            "icon": "text-size",
-            "pages": [
-              "api-reference/summarize"
-            ]
-          },
-          {
-            "group": "Classify",
-            "icon": "tags",
-            "pages": [
-              "api-reference/classify"
-            ]
-          }
+          "api-reference/classify-overview",
+          "api-reference/classify",
+          "api-reference/integrate-classify"
         ]
       },
       {
         "group": "Research",
+        "icon": "flask-conical",
         "pages": [
           {
             "group": "Python Package",
@@ -116,13 +80,7 @@
               "generic-prompt-compression/modular-prompt-optimization"
             ]
           },
-          {
-            "group": "Prompt Compression for Reasoning Models",
-            "icon": "code",
-            "pages": [
-              "code_compression/pareto_merging"
-            ]
-          }
+          "code_compression/pareto_merging"
         ]
       }
     ]
