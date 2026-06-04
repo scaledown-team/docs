@@ -9,7 +9,7 @@ Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate 
 
 ### Quick integration
 
-Paste this prompt to generate a minimal Python function — useful for prototyping or one-off scripts.
+Paste this prompt to generate a minimal Python function - useful for prototyping or one-off scripts.
 
 ```text Quick integration prompt
 Write a Python function `compress_context(context: str, prompt: str, api_key: str) -> str`
@@ -79,28 +79,28 @@ API details:
 
 Apply these programming principles:
 
-1. Environment configuration — Load the API key from the environment variable
+1. Environment configuration - Load the API key from the environment variable
    SCALEDOWN_API_KEY. Raise a clear ValueError at construction time if it is missing
    or empty, with a message that tells the developer exactly what to set.
 
-2. Typed result — Define a CompressResult dataclass with fields:
+2. Typed result - Define a CompressResult dataclass with fields:
      compressed_prompt (str), original_tokens (int), compressed_tokens (int),
      compression_rate (str | float), latency_ms (int)
 
-3. Custom exception — Define a ScaleDownError exception class that carries
+3. Custom exception - Define a ScaleDownError exception class that carries
    status_code (int) and message (str), and formats them into the exception message.
 
-4. Single-responsibility client — Implement a ScaleDownCompressClient class with one
+4. Single-responsibility client - Implement a ScaleDownCompressClient class with one
    public method:
      compress(context: str, prompt: str, rate: str | float = "auto") -> CompressResult
    The class owns the requests.Session and sets the auth header once at __init__.
 
-5. Retry with exponential backoff — Inside compress(), on HTTP 429 or any 5xx status,
+5. Retry with exponential backoff - Inside compress(), on HTTP 429 or any 5xx status,
    wait 2 s before retry 1, 4 s before retry 2, 8 s before retry 3.
    Raise ScaleDownError after all three retries are exhausted.
    Raise ScaleDownError immediately on 400 or 401 (not retriable).
 
-6. Type annotations — Add full type annotations to all functions, methods, and fields.
+6. Type annotations - Add full type annotations to all functions, methods, and fields.
    No module-level mutable state.
 ```
 
@@ -135,25 +135,25 @@ ScaleDown API details:
 
 Requirements:
 
-1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ at class
+1. Environment configuration - Load SCALEDOWN_API_KEY from os.environ at class
    instantiation. Raise RuntimeError with a clear message if the variable is absent.
 
-2. Conditional activation — Only call the ScaleDown API when the incoming request's
+2. Conditional activation - Only call the ScaleDown API when the incoming request's
    Content-Type header is "application/json" AND the parsed JSON body contains a
    "context" key. Pass all other requests through unchanged.
 
-3. Context replacement — Call /compress/raw/ with the body's "context" field as
+3. Context replacement - Call /compress/raw/ with the body's "context" field as
    `context` and the body's "prompt" field as `prompt` (use an empty string if
    "prompt" is absent). Use rate "auto".
    Store the compressed_prompt value in request.state.compressed_context so route
    handlers can read it.
 
-4. Graceful degradation — If the ScaleDown call fails for any reason (network timeout,
+4. Graceful degradation - If the ScaleDown call fails for any reason (network timeout,
    non-2xx status, JSON parse error), log a warning using the `logging` module and
    set request.state.compressed_context to the original context value.
    Never return an error response to the client because of a compression failure.
 
-5. Usage example — Include a short example at the bottom showing:
+5. Usage example - Include a short example at the bottom showing:
    - How to register the middleware: app.add_middleware(ScaleDownCompressionMiddleware)
    - A FastAPI POST route that reads request.state.compressed_context and passes it
      to an OpenAI or similar LLM call.
