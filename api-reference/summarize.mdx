@@ -6,7 +6,7 @@ description: "Produce an abstractive summary of a block of text."
 
 ## Overview
 
-The `/summarization/abstractive` endpoint condenses text in the model's own words without adding new information or commentary. Unlike extractive summarization, the output is a fluent rewrite — not a selection of lifted sentences.
+The `/summarization/abstractive` endpoint condenses text in the model's own words without adding new information or commentary. Unlike extractive summarization, the output is a fluent rewrite - not a selection of lifted sentences.
 
 ## Request
 
@@ -23,7 +23,7 @@ The `/summarization/abstractive` endpoint condenses text in the model's own word
 </ParamField>
 
 <ParamField body="instructions" type="string">
-  Optional additional rules for the summary. These are appended to the base instructions — they extend, not replace, the default behaviour (no new information, no commentary).
+  Optional additional rules for the summary. These are appended to the base instructions - they extend, not replace, the default behaviour (no new information, no commentary).
 
   Examples:
   - `"Use bullet points."`
@@ -275,5 +275,5 @@ const data = await response.json();
 
 ## Notes
 
-- The base instructions (no new information, no commentary) are always applied. The `instructions` field adds on top of them — it does not replace them.
+- The base instructions (no new information, no commentary) are always applied. The `instructions` field adds on top of them - it does not replace them.
 - Temperature, top-p, and other sampling parameters are fixed and not configurable via the API.
