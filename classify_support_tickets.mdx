@@ -5,11 +5,10 @@ description: "Route incoming support tickets to the right handler using the /cla
 
 # Guide: Support Ticket Classification
 
-**ScaleDown Team** • April 2026 • 8 min read
 
 Most AI pipelines aren't one-size-fits-all. A customer support system needs different logic for billing questions versus technical bugs. A document processor needs different prompts for legal contracts versus financial reports. Hard-coded keyword rules break down fast. Fine-tuning a classifier requires labelled data you may not have.
 
-The `/classify` endpoint gives you a probability distribution over labels you define in plain language. Use it as the first step in your pipeline to decide which branch to take — no training data, no model fine-tuning, no rules engine.
+The `/classify` endpoint gives you a probability distribution over labels you define in plain language. Use it as the first step in your pipeline to decide which branch to take - no training data, no model fine-tuning, no rules engine.
 
 <Tip>
 This guide builds a **support ticket router** that classifies incoming messages and dispatches them to the appropriate handler. The same pattern works for document routing, intent detection, content moderation, and more.
@@ -37,7 +36,7 @@ graph LR
     style G fill:#117866,color:#fff,stroke:#2dd4a0,stroke-width:2px
 ```
 
-The key insight: instead of writing routing logic, you write **rubrics** — yes/no questions that describe each category. The model scores the input text against each rubric and returns a probability distribution. You read `top_label` and route accordingly.
+The key insight: instead of writing routing logic, you write **rubrics** - yes/no questions that describe each category. The model scores the input text against each rubric and returns a probability distribution. You read `top_label` and route accordingly.
 
 ---
 
@@ -67,7 +66,7 @@ LABELS = [
 ```
 
 <Info>
-Keep rubrics independent. "Is this about a billing issue?" and "Is this about a payment problem?" overlap — they'll split probability mass between two labels for the same input. Merge them into one rubric or one label.
+Keep rubrics independent. "Is this about a billing issue?" and "Is this about a payment problem?" overlap - they'll split probability mass between two labels for the same input. Merge them into one rubric or one label.
 </Info>
 
 ---
@@ -149,12 +148,12 @@ Keep rubrics independent. "Is this about a billing issue?" and "Is this about a 
         score = result["scores"][label]
 
         if score < CONFIDENCE_THRESHOLD:
-            return f"[Unrouted] Low confidence ({score:.2f}) — sent to manual review"
+            return f"[Unrouted] Low confidence ({score:.2f}) - sent to manual review"
 
         return HANDLERS[label](text)
 
     print(route_with_threshold("Can you help me?"))
-    # [Unrouted] Low confidence (0.38) — sent to manual review
+    # [Unrouted] Low confidence (0.38) - sent to manual review
     ```
 
     <Info>
@@ -210,7 +209,7 @@ Keep rubrics independent. "Is this about a billing issue?" and "Is this about a 
     tickets = [
         "I was charged twice for my subscription this month and need a refund.",
         "The dashboard keeps throwing a 500 error when I try to export my data.",
-        "I can't log in — I think I forgot my password.",
+        "I can't log in - I think I forgot my password.",
         "Can you help me?",
     ]
 
@@ -229,7 +228,7 @@ Keep rubrics independent. "Is this about a billing issue?" and "Is this about a 
     'The dashboard keeps throwing a 500 error when I try to exp'
       → {'routed': True, 'label': 'technical', 'score': 0.887}
 
-    "I can't log in — I think I forgot my password."
+    "I can't log in - I think I forgot my password."
       → {'routed': True, 'label': 'account', 'score': 0.934}
 
     'Can you help me?'
@@ -252,7 +251,7 @@ def needs_escalation(scores: dict, threshold: float = 0.3) -> bool:
     return len(high_scoring) > 1
 ```
 
-**Log confidence over time.** Consistently low top scores on a particular label signal a rubric that isn't specific enough — or a new category you haven't defined yet.
+**Log confidence over time.** Consistently low top scores on a particular label signal a rubric that isn't specific enough - or a new category you haven't defined yet.
 
 **Soft routing for LLM prompts.** Instead of hard-switching handlers, use the top label to choose a system prompt:
 
@@ -281,7 +280,7 @@ def get_system_prompt(text: str) -> str:
     The right confidence threshold depends on your traffic. Log `top_label` and `score` for a week, then look at the score distribution to find a natural cutoff.
   </Card>
   <Card title="Test rubrics before deploying" icon="flask">
-    Run a sample of real messages through your labels before going live. If two labels consistently score within 0.05 of each other, your rubrics are too similar — merge or rewrite them.
+    Run a sample of real messages through your labels before going live. If two labels consistently score within 0.05 of each other, your rubrics are too similar - merge or rewrite them.
   </Card>
   <Card title="Handle the fallback" icon="shield-halved">
     Always have a fallback path for low-confidence or unrecognised inputs. Routing uncertain messages to a human or a general-purpose handler is better than forcing a wrong label.
