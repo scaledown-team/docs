@@ -9,7 +9,7 @@ Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate 
 
 ### Quick integration
 
-Paste this prompt to generate a minimal TypeScript function — useful for prototyping or one-off scripts.
+Paste this prompt to generate a minimal TypeScript function - useful for prototyping or one-off scripts.
 
 ```text Quick integration prompt
 Write a TypeScript async function `extractEntities` that calls the ScaleDown entity
@@ -26,14 +26,14 @@ API details:
       "instruction": "<optional global instruction>",      // optional; prepended before the text
       "entities": {
         "<EntityTypeName>": "<plain English description of what to look for>"
-        // values can also be nested objects or arrays — see structured extraction below
+        // values can also be nested objects or arrays - see structured extraction below
       }
     }
   Either "text" or "document" must be provided. If both are given, OCR text is appended
   after the plain text before extraction. The keys in "entities" are names you choose
   (e.g. "Name", "Email", "Company"). The values are descriptions of what each key should match.
   The optional "instruction" field is prepended before the text and applies globally across
-  all entity types — use it for deduplication rules, ranking constraints, or output format requirements.
+  all entity types - use it for deduplication rules, ranking constraints, or output format requirements.
 - Success response (JSON):
     {
       "entities": [
@@ -127,11 +127,11 @@ API details:
 
 Apply these programming principles:
 
-1. Environment configuration — Load the API key from process.env.SCALEDOWN_API_KEY.
+1. Environment configuration - Load the API key from process.env.SCALEDOWN_API_KEY.
    Throw a clear Error at construction time if the variable is undefined or empty,
    with a message that tells the developer exactly which variable to set.
 
-2. TypeScript interfaces — Define the following:
+2. TypeScript interfaces - Define the following:
      EntityDefinition: string
        | { description: string; threshold?: number; top_n?: number }
        | Record<string, unknown>
@@ -145,10 +145,10 @@ Apply these programming principles:
        ocr_text: string | null;
      }
 
-3. Custom error class — Define ScaleDownError extending Error with fields
+3. Custom error class - Define ScaleDownError extending Error with fields
    status: number and body: string, setting name = "ScaleDownError".
 
-4. Single-responsibility client — Implement a ScaleDownExtractClient class with one
+4. Single-responsibility client - Implement a ScaleDownExtractClient class with one
    public async method:
      extract(
        payload: {
@@ -161,7 +161,7 @@ Apply these programming principles:
      ): Promise<ExtractResult>
    No global state; the API key is stored as a private readonly field.
 
-5. Retry with exponential backoff — On HTTP 5xx or 504 status, wait 2 000 ms
+5. Retry with exponential backoff - On HTTP 5xx or 504 status, wait 2 000 ms
    before retry 1, 4 000 ms before retry 2, 8 000 ms before retry 3.
    Throw ScaleDownError after all three retries are exhausted.
    Throw ScaleDownError immediately on 422 (not retriable).
@@ -207,16 +207,16 @@ ScaleDown API details:
 
 Requirements:
 
-1. Environment configuration — Load SCALEDOWN_API_KEY from os.environ in __init__.
+1. Environment configuration - Load SCALEDOWN_API_KEY from os.environ in __init__.
    Raise ValueError with a clear message at init time if the variable is absent.
 
-2. Tool metadata — Set:
+2. Tool metadata - Set:
      name = "extract_entities"
      description = a clear sentence explaining that the tool extracts named entities
        from text (or a base64-encoded document) using a plain-English schema, and
        describing the expected input format.
 
-3. Input format — The tool's _run method accepts a single JSON string with keys:
+3. Input format - The tool's _run method accepts a single JSON string with keys:
      {
        "text": str,                         // optional if document is provided
        "document": str,                     // optional base64-encoded file
@@ -227,16 +227,16 @@ Requirements:
      }
    Parse it with json.loads; return a JSON error string if parsing fails.
 
-4. Return format — Return a JSON-encoded string of the full response (entities,
+4. Return format - Return a JSON-encoded string of the full response (entities,
    structured_result, ocr_text) on success. On any API error (network failure,
    non-2xx status, unexpected response shape), return a JSON string
    { "error": "<message>" } rather than raising an exception, so the agent can
    handle the failure gracefully.
 
-5. Async version — Implement _arun as an async version of _run using aiohttp.
+5. Async version - Implement _arun as an async version of _run using aiohttp.
    Reuse the same request-building and response-parsing logic.
 
-6. Usage example — Include a short code snippet at the bottom showing how to
+6. Usage example - Include a short code snippet at the bottom showing how to
    instantiate the tool and add it to a LangChain agent's tools list.
 ```
 
