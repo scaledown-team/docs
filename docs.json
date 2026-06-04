@@ -45,7 +45,7 @@
       },
       {
         "group": "Extract",
-        "icon": "scan-text",
+        "icon": "magnifying-glass",
         "pages": [
           "api-reference/extract-overview",
           "api-reference/extract",
@@ -63,7 +63,7 @@
       },
       {
         "group": "Research",
-        "icon": "flask-conical",
+        "icon": "flask",
         "pages": [
           {
             "group": "Python Package",
@@ -80,7 +80,13 @@
               "generic-prompt-compression/modular-prompt-optimization"
             ]
           },
-          "code_compression/pareto_merging"
+          {
+            "group": "Pareto Merging",
+            "icon": "chart-line",
+            "pages": [
+              "code_compression/pareto_merging"
+            ]
+          }
         ]
       }
     ]
