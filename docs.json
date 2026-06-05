@@ -60,34 +60,6 @@
           "api-reference/classify",
           "api-reference/integrate-classify"
         ]
-      },
-      {
-        "group": "Research",
-        "icon": "flask",
-        "pages": [
-          {
-            "group": "Python Package",
-            "icon": "code",
-            "pages": [
-              "Documentation"
-            ]
-          },
-          {
-            "group": "Generic Prompt Reduction",
-            "icon": "code-fork",
-            "pages": [
-              "generic-prompt-compression/overview",
-              "generic-prompt-compression/modular-prompt-optimization"
-            ]
-          },
-          {
-            "group": "Pareto Merging",
-            "icon": "chart-line",
-            "pages": [
-              "code_compression/pareto_merging"
-            ]
-          }
-        ]
       }
     ]
   }
