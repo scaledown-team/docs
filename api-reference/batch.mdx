@@ -1,0 +1,430 @@
+---
+title: "Batch"
+description: "Submit and retrieve large volumes of extract, summarize, and classify requests asynchronously."
+---
+
+## Overview
+
+The Batch API accepts the same request fields as the realtime endpoints. Set `"model"` to `"extract"`, `"summarize"`, or `"classify"` to select the operation. Each item is processed independently — a failure on one item does not affect others.
+
+Documents (`document` / `document_mime_type`) are not supported in batch requests. Pass pre-extracted text in the `text` field.
+
+---
+
+## Submit a batch
+
+### `POST /v1/batches`
+
+Submit a JSONL body where each line is one request. Returns a batch ID to poll for status and output.
+
+**Request headers**
+
+| Header | Value |
+|--------|-------|
+| `content-type` | `application/jsonl` (recommended) or `application/json` |
+| `x-api-key` | Your API key |
+
+The body is parsed as newline-delimited JSON regardless of content-type. You can send a single JSON object (one item) or a multi-line JSONL file.
+
+**JSONL line schema**
+
+Each line must be a JSON object with these top-level fields:
+
+<ParamField body="custom_id" type="string" required>
+  A unique identifier for this item, assigned by you. Returned as-is in the output so you can match results to inputs.
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  Always `"POST"`.
+</ParamField>
+
+<ParamField body="url" type="string" required>
+  Always `"/v1/chat/completions"`.
+</ParamField>
+
+<ParamField body="body" type="object" required>
+  The request body. `model` is the discriminator — set it to `"extract"`, `"summarize"`, or `"classify"`. Remaining fields depend on the model.
+</ParamField>
+
+---
+
+### Body fields by model
+
+#### `"model": "extract"`
+
+<ParamField body="body.text" type="string" required>
+  The input text to extract entities from.
+</ParamField>
+
+<ParamField body="body.entities" type="object" required>
+  A map of entity label → plain-English description. Keys become entity `type` values in the response.
+
+  ```json
+  {
+    "company": "Name of the company",
+    "revenue": "Revenue figure including currency and period"
+  }
+  ```
+</ParamField>
+
+<ParamField body="body.instruction" type="string">
+  Optional additional instructions appended to the extraction prompt.
+</ParamField>
+
+---
+
+#### `"model": "summarize"`
+
+<ParamField body="body.text" type="string" required>
+  The input text to summarize.
+</ParamField>
+
+<ParamField body="body.instructions" type="string">
+  Optional additional rules appended to the base summarization prompt (e.g. `"Use bullet points."`, `"Focus on financial figures only."`).
+</ParamField>
+
+<ParamField body="body.max_tokens" type="number" default={20048}>
+  Maximum tokens in the generated summary.
+</ParamField>
+
+---
+
+#### `"model": "classify"`
+
+<ParamField body="body.text" type="string" required>
+  The input text to classify.
+</ParamField>
+
+<ParamField body="body.labels" type="array" required>
+  Array of label objects. Each object must have:
+  - `name` (string) — the label name
+  - `rubric` (string) — a yes/no question describing what this label means
+
+  ```json
+  [
+    {"name": "Positive", "rubric": "Does this text express satisfaction or approval?"},
+    {"name": "Negative", "rubric": "Does this text express dissatisfaction or complaints?"}
+  ]
+  ```
+</ParamField>
+
+<ParamField body="body.system_prompt" type="string">
+  Optional additional instructions for the classification model.
+</ParamField>
+
+---
+
+### Response
+
+```json
+{
+  "batch_id": "batch-abc123",
+  "status": "queued",
+  "total_count": 3
+}
+```
+
+---
+
+## Get batch status
+
+### `GET /v1/batches/{batch_id}`
+
+Poll this endpoint until `status` is `"completed"` or `"failed"`.
+
+```json
+{
+  "batch_id": "batch-abc123",
+  "status": "completed",
+  "total_count": 3,
+  "completed_count": 3,
+  "failed_count": 0
+}
+```
+
+---
+
+## Get batch output
+
+### `GET /v1/batches/{batch_id}/output`
+
+Returns a JSONL file where each line corresponds to one input item.
+
+<ResponseField name="custom_id" type="string">
+  The `custom_id` you provided in the input.
+</ResponseField>
+
+<ResponseField name="response" type="object | null">
+  The response object. `null` if the item failed.
+  - `status_code` — HTTP status of the individual item
+  - `body` — ChatCompletion-shaped object. The domain result is JSON-serialized in `choices[0].message.content`.
+</ResponseField>
+
+<ResponseField name="error" type="object | null">
+  Error details if the item failed. `null` on success.
+</ResponseField>
+
+**Parsing the domain result:**
+
+```python
+import json
+
+for line in output_text.strip().splitlines():
+    item = json.loads(line)
+    content = json.loads(item["response"]["body"]["choices"][0]["message"]["content"])
+    # content is now the domain response dict (summary, entities, top_label, etc.)
+```
+
+---
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400 Bad Request` | A JSONL line has an invalid `model` value or malformed JSON. |
+| `401 Unauthorized` | Missing or invalid `x-api-key`. |
+| `503 Service Unavailable` | Batch router is not configured. |
+| `502 Bad Gateway` | Upstream batch router request failed. |
+
+---
+
+## Examples
+
+### Submit a mixed batch
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/v1/batches \
+  -H "content-type: application/jsonl" \
+  -H "x-api-key: <your-api-key>" \
+  --data-binary @- <<'EOF'
+{"custom_id":"sum-1","method":"POST","url":"/v1/chat/completions","body":{"model":"summarize","text":"Artificial intelligence is the simulation of human intelligence processes by machines...","instructions":"Use bullet points."}}
+{"custom_id":"ext-1","method":"POST","url":"/v1/chat/completions","body":{"model":"extract","text":"Apple Inc. reported Q1 revenue of $94.8B. CEO Tim Cook made the announcement on Feb 1st.","entities":{"company":"Name of the company","revenue":"Revenue figure","ceo":"Name of the CEO"}}}
+{"custom_id":"cls-1","method":"POST","url":"/v1/chat/completions","body":{"model":"classify","text":"This product is fantastic — fast shipping and great quality!","labels":[{"name":"Positive","rubric":"Does this text express satisfaction, praise, or approval?"},{"name":"Negative","rubric":"Does this text express dissatisfaction, complaints, or criticism?"}]}}
+EOF
+```
+
+```python Python
+import json
+import requests
+
+lines = [
+    {
+        "custom_id": "sum-1",
+        "method": "POST",
+        "url": "/v1/chat/completions",
+        "body": {
+            "model": "summarize",
+            "text": "Artificial intelligence is the simulation of human intelligence...",
+            "instructions": "Use bullet points.",
+        },
+    },
+    {
+        "custom_id": "ext-1",
+        "method": "POST",
+        "url": "/v1/chat/completions",
+        "body": {
+            "model": "extract",
+            "text": "Apple Inc. reported Q1 revenue of $94.8B. CEO Tim Cook made the announcement on Feb 1st.",
+            "entities": {
+                "company": "Name of the company",
+                "revenue": "Revenue figure",
+                "ceo": "Name of the CEO",
+            },
+        },
+    },
+    {
+        "custom_id": "cls-1",
+        "method": "POST",
+        "url": "/v1/chat/completions",
+        "body": {
+            "model": "classify",
+            "text": "This product is fantastic — fast shipping and great quality!",
+            "labels": [
+                {"name": "Positive", "rubric": "Does this text express satisfaction, praise, or approval?"},
+                {"name": "Negative", "rubric": "Does this text express dissatisfaction, complaints, or criticism?"},
+            ],
+        },
+    },
+]
+
+body = "\n".join(json.dumps(line) for line in lines).encode()
+
+response = requests.post(
+    "https://api.scaledown.xyz/v1/batches",
+    headers={
+        "content-type": "application/jsonl",
+        "x-api-key": "<your-api-key>",
+    },
+    data=body,
+)
+batch_id = response.json()["batch_id"]
+print(f"Batch submitted: {batch_id}")
+```
+
+```typescript TypeScript
+const lines = [
+  {
+    custom_id: "sum-1",
+    method: "POST",
+    url: "/v1/chat/completions",
+    body: {
+      model: "summarize",
+      text: "Artificial intelligence is the simulation of human intelligence...",
+      instructions: "Use bullet points.",
+    },
+  },
+  {
+    custom_id: "ext-1",
+    method: "POST",
+    url: "/v1/chat/completions",
+    body: {
+      model: "extract",
+      text: "Apple Inc. reported Q1 revenue of $94.8B. CEO Tim Cook made the announcement on Feb 1st.",
+      entities: {
+        company: "Name of the company",
+        revenue: "Revenue figure",
+        ceo: "Name of the CEO",
+      },
+    },
+  },
+  {
+    custom_id: "cls-1",
+    method: "POST",
+    url: "/v1/chat/completions",
+    body: {
+      model: "classify",
+      text: "This product is fantastic — fast shipping and great quality!",
+      labels: [
+        { name: "Positive", rubric: "Does this text express satisfaction, praise, or approval?" },
+        { name: "Negative", rubric: "Does this text express dissatisfaction, complaints, or criticism?" },
+      ],
+    },
+  },
+];
+
+const body = lines.map((l) => JSON.stringify(l)).join("\n");
+
+const response = await fetch("https://api.scaledown.xyz/v1/batches", {
+  method: "POST",
+  headers: {
+    "content-type": "application/jsonl",
+    "x-api-key": "<your-api-key>",
+  },
+  body,
+});
+const { batch_id } = await response.json();
+console.log(`Batch submitted: ${batch_id}`);
+```
+
+</CodeGroup>
+
+**Response:**
+```json
+{
+  "batch_id": "batch-abc123",
+  "status": "queued",
+  "total_count": 3
+}
+```
+
+---
+
+### Poll for completion
+
+<CodeGroup>
+
+```python Python
+import time
+import requests
+
+headers = {"x-api-key": "<your-api-key>"}
+
+while True:
+    status = requests.get(
+        f"https://api.scaledown.xyz/v1/batches/{batch_id}",
+        headers=headers,
+    ).json()
+    if status["status"] in ("completed", "failed"):
+        break
+    time.sleep(5)
+```
+
+```typescript TypeScript
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+while (true) {
+  const res = await fetch(`https://api.scaledown.xyz/v1/batches/${batchId}`, {
+    headers: { "x-api-key": "<your-api-key>" },
+  });
+  const status = await res.json();
+  if (status.status === "completed" || status.status === "failed") break;
+  await sleep(5000);
+}
+```
+
+</CodeGroup>
+
+---
+
+### Retrieve and parse output
+
+<CodeGroup>
+
+```python Python
+import json
+import requests
+
+response = requests.get(
+    f"https://api.scaledown.xyz/v1/batches/{batch_id}/output",
+    headers={"x-api-key": "<your-api-key>"},
+)
+
+for line in response.text.strip().splitlines():
+    item = json.loads(line)
+    model = item["response"]["body"]["model"]
+    content = json.loads(item["response"]["body"]["choices"][0]["message"]["content"])
+
+    if model == "summarize":
+        print(f"[{item['custom_id']}] Summary: {content['summary']}")
+    elif model == "extract":
+        for entity in content["entities"]:
+            print(f"[{item['custom_id']}] {entity['type']}: {entity['value']}")
+    elif model == "classify":
+        print(f"[{item['custom_id']}] Top label: {content['top_label']} — {content['reasoning']}")
+```
+
+```typescript TypeScript
+const outputRes = await fetch(
+  `https://api.scaledown.xyz/v1/batches/${batchId}/output`,
+  { headers: { "x-api-key": "<your-api-key>" } }
+);
+const text = await outputRes.text();
+
+for (const line of text.trim().split("\n")) {
+  const item = JSON.parse(line);
+  const body = item.response.body;
+  const content = JSON.parse(body.choices[0].message.content);
+
+  if (body.model === "summarize") {
+    console.log(`[${item.custom_id}] Summary:`, content.summary);
+  } else if (body.model === "extract") {
+    for (const entity of content.entities) {
+      console.log(`[${item.custom_id}] ${entity.type}: ${entity.value}`);
+    }
+  } else if (body.model === "classify") {
+    console.log(`[${item.custom_id}] Top label: ${content.top_label} — ${content.reasoning}`);
+  }
+}
+```
+
+</CodeGroup>
+
+**Sample output JSONL:**
+
+```jsonl
+{"custom_id":"sum-1","response":{"status_code":200,"body":{"model":"summarize","choices":[{"message":{"content":"{\"summary\":\"• AI simulates human cognitive processes in machines.\\n• Key research areas include learning, reasoning, and perception.\",\"input_chars\":420,\"output_chars\":112}"}}]}},"error":null}
+{"custom_id":"ext-1","response":{"status_code":200,"body":{"model":"extract","choices":[{"message":{"content":"{\"entities\":[{\"type\":\"company\",\"value\":\"Apple Inc.\",\"score\":0.98},{\"type\":\"revenue\",\"value\":\"$94.8B\",\"score\":0.97},{\"type\":\"ceo\",\"value\":\"Tim Cook\",\"score\":0.99}]}"}}]}},"error":null}
+{"custom_id":"cls-1","response":{"status_code":200,"body":{"model":"classify","choices":[{"message":{"content":"{\"top_label\":\"Positive\",\"scores\":{\"Positive\":0.97,\"Negative\":0.03},\"reasoning\":\"The text praises fast shipping and product quality explicitly.\"}"}}]}},"error":null}
+```
