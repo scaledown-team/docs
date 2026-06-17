@@ -60,6 +60,15 @@
           "api-reference/classify",
           "api-reference/integrate-classify"
         ]
+      },
+      {
+        "group": "Batch",
+        "icon": "layer-group",
+        "pages": [
+          "api-reference/batch-overview",
+          "api-reference/batch",
+          "api-reference/integrate-batch"
+        ]
       }
     ]
   }
