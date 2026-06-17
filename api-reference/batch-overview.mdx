@@ -1,0 +1,89 @@
+---
+title: "Overview"
+description: "Process large volumes of extract, summarize, and classify requests asynchronously."
+---
+
+## What it does
+
+The Batch API lets you submit hundreds or thousands of extract, summarize, or classify requests in a single call and retrieve results when processing is complete. Instead of waiting for each request to return synchronously, you submit a JSONL body, get back a batch ID, and poll for output when ready.
+
+The request format mirrors the realtime endpoints exactly — you use the same fields you already know, with `"model"` set to `"extract"`, `"summarize"`, or `"classify"` as the discriminator.
+
+## When to use it
+
+**You have a large backlog to process.** If you need to run extraction, summarization, or classification across thousands of documents, submitting them as a batch is far more efficient than issuing individual synchronous requests.
+
+**Latency is not critical.** Batch jobs complete asynchronously. If your pipeline can tolerate a delay — overnight document processing, weekly report generation, bulk data enrichment — Batch is the right tool.
+
+**You want to reduce complexity at scale.** Batch processing avoids managing concurrency, retries, and rate limits on your side. Submit once, retrieve once.
+
+## Common use cases
+
+| Use case | Example |
+|---|---|
+| Bulk document extraction | Extract named entities from thousands of contracts overnight |
+| Large-scale summarization | Summarize a backlog of articles, reports, or transcripts in one job |
+| Batch content classification | Classify thousands of support tickets or emails by category |
+| Data enrichment pipelines | Enrich a dataset with structured fields from unstructured text |
+| Offline report generation | Process documents on a schedule without managing concurrency |
+
+## How it works
+
+```
+[POST /v1/batches]  →  batch_id  →  [poll GET /v1/batches/{id}]  →  completed
+                                               ↓
+                                  [GET /v1/batches/{id}/output]  →  JSONL results
+```
+
+1. **Submit** — POST newline-delimited JSON (JSONL) with one request per line, or a single JSON object for one item. Each line has a `custom_id` you assign and a `body` with the same fields as the realtime endpoint.
+2. **Poll status** — GET `/v1/batches/{id}` until `status` is `"completed"` or `"failed"`.
+3. **Retrieve output** — GET `/v1/batches/{id}/output` returns a JSONL file with one result per line, matched to your `custom_id`.
+
+## Supported models
+
+| `model` value | Equivalent realtime endpoint | Key fields |
+|---|---|---|
+| `"extract"` | `POST /extract` | `text`, `entities`, `instruction` |
+| `"summarize"` | `POST /summarization/abstractive` | `text`, `instructions`, `max_tokens` |
+| `"classify"` | `POST /classify` | `text`, `labels`, `system_prompt` |
+
+Any other value for `model` returns a `400` error immediately — no items are forwarded.
+
+## Output format
+
+Each output line wraps the domain response in an OpenAI-compatible `ChatCompletion` shape. The domain result is JSON-serialized and placed in `choices[0].message.content`:
+
+```json
+{
+  "custom_id": "your-custom-id",
+  "response": {
+    "status_code": 200,
+    "body": {
+      "id": "chatcmpl-...",
+      "object": "chat.completion",
+      "model": "summarize",
+      "choices": [{
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"summary\": \"...\", \"input_chars\": 1200, \"output_chars\": 180}"
+        },
+        "finish_reason": "stop"
+      }]
+    }
+  },
+  "error": null
+}
+```
+
+Parse `choices[0].message.content` as JSON to get the domain response fields.
+
+## Mixing types in one batch
+
+A single batch can contain items of different types. The `model` field on each line is the discriminator — each line is processed independently.
+
+```jsonl
+{"custom_id": "s-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "summarize", "text": "..."}}
+{"custom_id": "e-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "extract", "text": "...", "entities": {...}}}
+{"custom_id": "c-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "classify", "text": "...", "labels": [...]}}
+```
