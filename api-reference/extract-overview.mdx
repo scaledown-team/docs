@@ -19,6 +19,8 @@ This makes it practical to extract domain-specific entities that generic NER mod
 
 **You want context alongside every result.** Every extracted span comes with 500 characters of surrounding text on each side, so you can verify the extraction in context without going back to the source document.
 
+**Your source is an image or scan, not text.** Extract has built-in OCR (AWS Textract). Send a base64-encoded photo, scan, or PDF in the `document` field and it recovers the text before extraction - so receipts, invoices, IDs, business cards, and scanned forms work without a separate OCR step. See [Extracting from an image (OCR)](/api-reference/extract#extracting-from-an-image-ocr).
+
 ## Common use cases
 
 | Use case | Example entities |
@@ -30,6 +32,7 @@ This makes it practical to extract domain-specific entities that generic NER mod
 | Customer support tickets | Product names, error codes, account identifiers |
 | News / media monitoring | People, organizations, locations, quoted statements |
 | E-commerce | Product names, prices, SKUs, brands, specifications |
+| Scanned images & receipts (OCR) | Merchant, total, date, line items, tax from a photo or scan |
 
 ## How it fits into your workflow
 
