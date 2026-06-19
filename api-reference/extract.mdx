@@ -200,9 +200,104 @@ const data = await response.json();
 }
 ```
 
-### Extracting from a document
+### Extracting from an image (OCR)
 
-Pass a base64-encoded image or PDF in the `document` field. OCR is performed automatically and the extracted text is used as the input. The raw OCR output is returned as `ocr_text`.
+Extract works directly on photos and scans, not just plain text. Pass a base64-encoded **image** (or PDF) in the `document` field - we run OCR via AWS Textract, then extract your entities from the recovered text. This is the path to use for receipts, invoices, IDs, forms, business cards, and any photographed or scanned page. The raw OCR output is returned as `ocr_text` so you can audit exactly what the model read.
+
+<Tip>
+  Supported formats: **JPEG, PNG, TIFF**, and single- or multi-page **PDF**. `document_mime_type` is required whenever `document` is set - use the file's real MIME type (e.g. `image/jpeg`, `image/png`, `application/pdf`) so Textract decodes the bytes correctly. You can also send `text` and `document` together; the OCR output is appended after your `text`.
+</Tip>
+
+The example below extracts fields from a photographed receipt:
+
+<CodeGroup>
+
+```bash cURL
+DOCUMENT=$(base64 -b 0 -i receipt.jpg)
+
+curl -X POST https://api.scaledown.xyz/extract \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "document": "'"$DOCUMENT"'",
+    "document_mime_type": "image/jpeg",
+    "entities": {
+      "merchant": "Name of the store or merchant",
+      "total": "Total amount paid, including currency",
+      "date": "Date of the transaction"
+    }
+  }'
+```
+
+```python Python
+import base64
+import requests
+
+with open("receipt.jpg", "rb") as f:
+    document = base64.b64encode(f.read()).decode()
+
+response = requests.post(
+    "https://api.scaledown.xyz/extract",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "document": document,
+        "document_mime_type": "image/jpeg",
+        "entities": {
+            "merchant": "Name of the store or merchant",
+            "total": "Total amount paid, including currency",
+            "date": "Date of the transaction",
+        },
+    },
+)
+data = response.json()
+print(data["entities"])
+print(data["ocr_text"])  # raw text recovered from the image
+```
+
+```typescript TypeScript
+import fs from "fs";
+
+const document = fs.readFileSync("receipt.jpg").toString("base64");
+
+const response = await fetch("https://api.scaledown.xyz/extract", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    document,
+    document_mime_type: "image/jpeg",
+    entities: {
+      merchant: "Name of the store or merchant",
+      total: "Total amount paid, including currency",
+      date: "Date of the transaction",
+    },
+  }),
+});
+const data = await response.json();
+console.log(data.ocr_text); // raw text recovered from the image
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "entities": [
+    { "text": "Blue Bottle Coffee", "type": "merchant", "confidence": 0.98, "start": 0, "end": 18, "context": "Blue Bottle Coffee ..." },
+    { "text": "$12.50", "type": "total", "confidence": 0.95, "start": 38, "end": 44, "context": "... TOTAL $12.50" },
+    { "text": "03/14/2026", "type": "date", "confidence": 0.97, "start": 19, "end": 29, "context": "Blue Bottle Coffee 03/14/2026 ..." }
+  ],
+  "structured_result": null,
+  "ocr_text": "Blue Bottle Coffee\n03/14/2026\n1x Latte  $5.00\n1x Croissant  $7.50\nTOTAL $12.50"
+}
+```
+
+### Extracting from a PDF
+
+PDFs (single- or multi-page) work the same way - just set `document_mime_type` to `application/pdf`.
 
 <CodeGroup>
 
