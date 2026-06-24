@@ -8,7 +8,7 @@ description: "Extract named entities from text using a custom-defined schema."
 
 The `/extract` endpoint runs Named Entity Recognition (NER) over a block of text. Unlike standard NER, you define the entity types you want in plain English - the model uses your descriptions to find matching spans, returning each one with a confidence score and surrounding context.
 
-Every result includes up to 500 characters of surrounding text on each side, so you can validate or use the extracted value without going back to the source.
+Every result includes surrounding text on each side of the matched span, so you can validate or use the extracted value without going back to the source. The amount of context returned is controlled by the `context_chars` parameter (default: 500 characters per side).
 
 ## Request
 
@@ -26,6 +26,10 @@ Every result includes up to 500 characters of surrounding text on each side, so 
 
 <ParamField body="instruction" type="string">
   Optional global instruction prepended to the text before extraction. Use this to provide rules that apply across all entity types - for example, deduplication logic, ranking constraints, or output format requirements. This is separate from per-entity descriptions.
+</ParamField>
+
+<ParamField body="context_chars" type="number" default={500}>
+  Number of characters of surrounding text to include on each side of a matched entity span in the `context` response field. Set to `0` to omit context entirely, or increase for wider windows on long documents.
 </ParamField>
 
 <ParamField body="entities" type="object" required>
@@ -79,7 +83,7 @@ Every result includes up to 500 characters of surrounding text on each side, so 
       Character offset of the end of the entity in the input text.
     </ResponseField>
     <ResponseField name="context" type="string">
-      Up to 500 characters of surrounding text on each side of the entity. Prefixed/suffixed with `...` when clipped.
+      Surrounding text around the entity span. The window size is controlled by the `context_chars` request parameter (default: 500 characters per side).
     </ResponseField>
   </Expandable>
 </ResponseField>
