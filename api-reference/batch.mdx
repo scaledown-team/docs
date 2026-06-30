@@ -114,13 +114,27 @@ Each line must be a JSON object with these top-level fields:
 
 ---
 
+**Limits**
+
+A single batch may contain at most **50 requests**. Submitting more returns `400`. Split larger workloads across multiple batches.
+
 ### Response
+
+Returns an OpenAI-compatible Batch object. A newly created batch starts in `"validating"`.
 
 ```json
 {
-  "batch_id": "batch-abc123",
-  "status": "queued",
-  "total_count": 3
+  "id": "batch_abc123",
+  "object": "batch",
+  "endpoint": "/v1/chat/completions",
+  "input_file_id": null,
+  "completion_window": "24h",
+  "status": "validating",
+  "output_file_id": null,
+  "error_file_id": null,
+  "created_at": 1782819284,
+  "request_counts": { "total": 3, "completed": 0, "failed": 0 },
+  "metadata": null
 }
 ```
 
@@ -130,17 +144,24 @@ Each line must be a JSON object with these top-level fields:
 
 ### `GET /v1/batches/{batch_id}`
 
-Poll this endpoint until `status` is `"completed"` or `"failed"`.
+Poll this endpoint until `status` is `"completed"` or `"failed"`. Returns the same OpenAI-compatible Batch object.
 
 ```json
 {
-  "batch_id": "batch-abc123",
+  "id": "batch_abc123",
+  "object": "batch",
+  "endpoint": "/v1/chat/completions",
+  "completion_window": "24h",
   "status": "completed",
-  "total_count": 3,
-  "completed_count": 3,
-  "failed_count": 0
+  "output_file_id": "batch_abc123_output",
+  "error_file_id": null,
+  "created_at": 1782819284,
+  "request_counts": { "total": 3, "completed": 3, "failed": 0 },
+  "metadata": null
 }
 ```
+
+`status` is one of `validating`, `in_progress`, `completed`, or `failed`. An unknown batch ID returns `404`.
 
 ---
 
@@ -181,10 +202,10 @@ for line in output_text.strip().splitlines():
 
 | Status | Meaning |
 |--------|---------|
-| `400 Bad Request` | A JSONL line has an invalid `model` value or malformed JSON. |
+| `400 Bad Request` | A JSONL line has an invalid `model` value or malformed JSON, or the batch exceeds 50 requests. |
 | `401 Unauthorized` | Missing or invalid `x-api-key`. |
-| `503 Service Unavailable` | Batch router is not configured. |
-| `502 Bad Gateway` | Upstream batch router request failed. |
+| `404 Not Found` | The batch ID does not exist, or its output is not yet available. |
+| `502 Bad Gateway` | The batch backend request failed. |
 
 ---
 
@@ -259,7 +280,7 @@ response = requests.post(
     },
     data=body,
 )
-batch_id = response.json()["batch_id"]
+batch_id = response.json()["id"]
 print(f"Batch submitted: {batch_id}")
 ```
 
@@ -314,7 +335,7 @@ const response = await fetch("https://api.scaledown.xyz/v1/batches", {
   },
   body,
 });
-const { batch_id } = await response.json();
+const { id: batch_id } = await response.json();
 console.log(`Batch submitted: ${batch_id}`);
 ```
 
@@ -323,9 +344,16 @@ console.log(`Batch submitted: ${batch_id}`);
 **Response:**
 ```json
 {
-  "batch_id": "batch-abc123",
-  "status": "queued",
-  "total_count": 3
+  "id": "batch_abc123",
+  "object": "batch",
+  "endpoint": "/v1/chat/completions",
+  "completion_window": "24h",
+  "status": "validating",
+  "output_file_id": null,
+  "error_file_id": null,
+  "created_at": 1782819284,
+  "request_counts": { "total": 3, "completed": 0, "failed": 0 },
+  "metadata": null
 }
 ```
 
