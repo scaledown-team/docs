@@ -47,11 +47,12 @@ Submit batch — POST https://api.scaledown.xyz/v1/batches
       "system_prompt": "<optional>"
     }
 
-- Success response (JSON):
-    { "batch_id": "<id>", "status": "queued", "total_count": <n> }
+- Success response (OpenAI-shaped Batch object, JSON):
+    { "id": "<id>", "object": "batch", "status": "validating", "request_counts": { "total": <n>, "completed": 0, "failed": 0 } }
+- A single batch may contain at most 50 requests (else 400).
 
-Poll status — GET https://api.scaledown.xyz/v1/batches/{batch_id}
-- Returns: { "batch_id": "...", "status": "queued|processing|completed|failed", ... }
+Poll status — GET https://api.scaledown.xyz/v1/batches/{id}
+- Returns: { "id": "...", "object": "batch", "status": "validating|in_progress|completed|failed", "request_counts": {...}, ... }
 - Poll until status is "completed" or "failed"
 
 Get output — GET https://api.scaledown.xyz/v1/batches/{batch_id}/output
@@ -107,10 +108,10 @@ Submit batch — POST https://api.scaledown.xyz/v1/batches
   model="extract"   → body fields: text (str), entities (dict[str, str]), instruction (str, optional)
   model="classify"  → body fields: text (str), labels (list[{"name": str, "rubric": str}]), system_prompt (str, optional)
 
-- Response: { "batch_id": str, "status": "queued", "total_count": int }
+- Response (OpenAI Batch object): { "id": str, "object": "batch", "status": "validating", "request_counts": { "total": int, "completed": int, "failed": int } }
 
-Poll — GET https://api.scaledown.xyz/v1/batches/{batch_id}
-- Response: { "batch_id": str, "status": "queued"|"processing"|"completed"|"failed", ... }
+Poll — GET https://api.scaledown.xyz/v1/batches/{id}
+- Response: { "id": str, "object": "batch", "status": "validating"|"in_progress"|"completed"|"failed", "request_counts": {...}, ... }
 
 Output — GET https://api.scaledown.xyz/v1/batches/{batch_id}/output
 - Response: JSONL. Each line:
@@ -171,10 +172,10 @@ ScaleDown Batch API:
   Body: JSONL with one item per line:
     { "custom_id": str, "method": "POST", "url": "/v1/chat/completions",
       "body": { "model": "summarize"|"extract"|"classify", ...fields... } }
-  Response: { "batch_id": str, "status": "queued", "total_count": int }
+  Response (OpenAI Batch object): { "id": str, "object": "batch", "status": "validating", "request_counts": {...} }
 
-- Poll:   GET https://api.scaledown.xyz/v1/batches/{batch_id}
-  Response: { "status": "queued"|"processing"|"completed"|"failed", ... }
+- Poll:   GET https://api.scaledown.xyz/v1/batches/{id}
+  Response: { "id": str, "object": "batch", "status": "validating"|"in_progress"|"completed"|"failed", "request_counts": {...}, ... }
 
 - Output: GET https://api.scaledown.xyz/v1/batches/{batch_id}/output
   Response: JSONL. Each line: { "custom_id": str, "response": { "body": { "model": str,
@@ -318,7 +319,7 @@ class ScaleDownBatchClient:
                 time.sleep(retry_delays[attempt - 1])
             resp = self._session.post(self.BASE_URL, data=jsonl, headers={"content-type": "application/jsonl"})
             if resp.ok:
-                return resp.json()["batch_id"]
+                return resp.json()["id"]
             if resp.status_code >= 500:
                 last_error = ScaleDownBatchError(resp.status_code, resp.text)
                 continue
