@@ -95,6 +95,10 @@ API details:
             }
           | { "<field>": "<description>", ... }           // nested object schema
           | [{ "<field>": "<description>", ... }]         // array-of-objects schema
+          | {                                             // classification key
+              "labels": [ "<label>" | { "name": "<label>", "rubric": "<when it applies>" }, ... ],  // 2–26 labels
+              "description": "<optional context for the decision>"  // optional
+            }
       },
       "threshold": 0.5,  // optional global confidence cutoff, default 0.5
       "top_n": 0         // optional global max results per type, default 0 (unlimited)
@@ -102,6 +106,13 @@ API details:
   Either "text" or "document" must be provided. If both are given, the OCR text is
   appended after the plain text before extraction. The optional "instruction" field is
   prepended before the text and applies globally across all entity types.
+  A key whose object contains a "labels" list is a classification key: it is routed to
+  the classification model instead of extracted, and its "confidence" is the calibrated
+  probability of the chosen label (returned as the entity "text"). Its "start"/"end"/
+  "context" point at the verbatim evidence phrase backing the decision (not the label
+  text, which is usually inferred and not present verbatim), falling back to 0 / "" when
+  no evidence is found. A classification key with fewer than 2 or more than 26 labels
+  returns 422.
 - Success response (JSON):
     {
       "entities": [

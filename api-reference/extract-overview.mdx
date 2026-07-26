@@ -21,6 +21,8 @@ This makes it practical to extract domain-specific entities that generic NER mod
 
 **Your source is an image or scan, not text.** Extract has built-in OCR (AWS Textract). Send a base64-encoded photo, scan, or PDF in the `document` field and it recovers the text before extraction - so receipts, invoices, IDs, business cards, and scanned forms work without a separate OCR step. See [Extracting from an image (OCR)](/api-reference/extract#extracting-from-an-image-ocr).
 
+**Some of your fields are decisions, not spans.** Booleans and small categories - "is this account past due?", "electric or gas?" - have no verbatim span to pull. Mark those keys with a `labels` list and Extract routes them to the classification model, which is purpose-built for categorical decisions, while extracting the rest as normal. Each label can be a plain string, or an object with a `rubric` describing when it applies - rubrics meaningfully improve accuracy. See [Classification keys](/api-reference/extract#classification-keys).
+
 ## Common use cases
 
 | Use case | Example entities |
@@ -64,4 +66,5 @@ The entity name and description are treated as part of the model's prompt - how 
 | Per-entity thresholds | Not typically supported | Supported |
 | Context window | Usually sentence-level | Full document |
 | Structured / nested output | Not supported | Supported via nested object and array schemas |
+| Categorical / boolean fields | Extracted as text (lower accuracy) | Routed to a purpose-built classifier via `labels` |
 | Document / image input | Not supported | Supported via base64 + OCR |
