@@ -39,6 +39,7 @@ Every result includes surrounding text on each side of the matched span, so you 
   - An **object** - with optional `description`, `threshold`, and `top_n` fields
   - A **nested object** - defining a structured sub-schema (object with named fields)
   - An **array of objects** - defining a repeated structured schema (e.g. a list of line items)
+  - A **classification key** - an object with a `labels` list, routed to the classifier (see below)
 
   <Expandable title="Entity object fields">
     <ParamField body="description" type="string">
@@ -49,6 +50,17 @@ Every result includes surrounding text on each side of the matched span, so you 
     </ParamField>
     <ParamField body="top_n" type="number">
       Per-entity result limit. Overrides the global `top_n` for this type only.
+    </ParamField>
+  </Expandable>
+
+  <Expandable title="Classification key fields">
+    A key whose object contains a `labels` list is treated as a **classification key**. Rather than copying a value out of the text, its value is decided by choosing among your labels using our classification model - which is purpose-built for categorical and boolean decisions and is more accurate on them than the extraction model. The response still includes the evidence span and surrounding context. See [Classification keys](#classification-keys) for details.
+
+    <ParamField body="labels" type="array" required>
+      The candidate values to choose between (2–26). Each label is either a **plain string** (the value to return) or an **object** with `name` and `rubric` fields, where `rubric` describes when that label applies. Providing rubrics improves accuracy.
+    </ParamField>
+    <ParamField body="description" type="string">
+      Optional context about the decision being made for this key. Prepended to the combined rubric.
     </ParamField>
   </Expandable>
 </ParamField>
@@ -74,7 +86,7 @@ Every result includes surrounding text on each side of the matched span, so you 
       The entity type name, matching a key from your `entities` request field.
     </ResponseField>
     <ResponseField name="confidence" type="number">
-      Model confidence score between 0 and 1.
+      Model confidence score between 0 and 1. For [classification keys](#classification-keys), this is the calibrated probability of the chosen label.
     </ResponseField>
     <ResponseField name="start" type="number">
       Character offset of the start of the entity in the input text.
@@ -100,7 +112,7 @@ Every result includes surrounding text on each side of the matched span, so you 
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, a classification key with fewer than 2 or more than 26 labels, or OCR failed. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Extraction request timed out. |
 
@@ -570,6 +582,136 @@ When using array schemas, array fields appear only in `structured_result`. The `
 
 ---
 
+### Classification keys
+
+Some of the fields you want are not really *extraction* targets - they are **decisions**. "Is this account past due?" or "Is this an electric or gas meter?" have no verbatim span to pull; they require judging the text against a fixed set of options. The extraction model is tuned to copy spans out of the source, so it is a poor fit for these, and mixing them into an extraction call drags down accuracy for every key.
+
+To handle these, mark the key as a **classification key** by giving it a `labels` list. Any key whose object contains `labels` is split out of the extraction call and routed to our [classification model](/api-reference/classify) instead - a model purpose-built for categorical and boolean decisions, using constrained decoding over your labels with calibrated confidence scores. The rest of the request extracts as normal, and classified values are merged back into the same response so nothing changes on your side.
+
+Labels can be plain strings, or objects with a `name` and a `rubric` describing when that label applies. **Rubrics meaningfully improve accuracy** - prefer them over bare strings for anything non-obvious. An optional per-key `description` adds context about the decision.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/extract \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "text": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line.",
+    "entities": {
+      "account_holder": "Full name of the account holder",
+      "is_delinquent": {
+        "description": "Whether the account is behind on payments",
+        "labels": [
+          { "name": "delinquent", "rubric": "Balance is past due, in collections, or 30+ days overdue" },
+          { "name": "current", "rubric": "Account is paid up to date, with no past-due balance" }
+        ]
+      },
+      "meter_type": {
+        "labels": ["electric", "gas"]
+      }
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/extract",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "text": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line.",
+        "entities": {
+            "account_holder": "Full name of the account holder",
+            "is_delinquent": {
+                "description": "Whether the account is behind on payments",
+                "labels": [
+                    {"name": "delinquent", "rubric": "Balance is past due, in collections, or 30+ days overdue"},
+                    {"name": "current", "rubric": "Account is paid up to date, with no past-due balance"},
+                ],
+            },
+            "meter_type": {"labels": ["electric", "gas"]},
+        },
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/extract", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    text: "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line.",
+    entities: {
+      account_holder: "Full name of the account holder",
+      is_delinquent: {
+        description: "Whether the account is behind on payments",
+        labels: [
+          { name: "delinquent", rubric: "Balance is past due, in collections, or 30+ days overdue" },
+          { name: "current", rubric: "Account is paid up to date, with no past-due balance" },
+        ],
+      },
+      meter_type: { labels: ["electric", "gas"] },
+    },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "entities": [
+    {
+      "text": "Jane Doe",
+      "type": "account_holder",
+      "confidence": 1.0,
+      "start": 12,
+      "end": 20,
+      "context": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."
+    },
+    {
+      "text": "delinquent",
+      "type": "is_delinquent",
+      "confidence": 0.94,
+      "start": 33,
+      "end": 49,
+      "context": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."
+    },
+    {
+      "text": "gas",
+      "type": "meter_type",
+      "confidence": 0.88,
+      "start": 60,
+      "end": 76,
+      "context": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."
+    }
+  ],
+  "structured_result": null,
+  "ocr_text": null
+}
+```
+
+The classified value is returned as the entity `text`, and `confidence` is the calibrated probability of the chosen label. The label itself is usually not a verbatim span in the source (it was inferred), so `start`/`end` and `context` instead point at the **evidence** the model used for the decision - here, `"90 days past due"` for `is_delinquent`, not the word "delinquent". If no relevant evidence is found, `start`/`end` fall back to `0` and `context` is empty. In a [structured (nested)](#structured-nested-extraction) request, classified values also appear in `structured_result` under their key.
+
+<Note>
+  A classification key still counts as part of your single `/extract` call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 26 labels; outside that range the request returns `422`.
+</Note>
+
+<Tip>
+  To locate the evidence span, each classification key runs a brief follow-up pass that pulls the verbatim phrase backing the decision. This is transparent - the span and `context` are populated for you - but it does add to the token usage reported for the call. If you don't need spans for a boolean/categorical field, you can ignore `start`/`end`/`context` on those entities.
+</Tip>
+
+---
+
 ### With per-entity overrides
 
 Use per-entity `threshold` and `top_n` when different entity types need different precision, or when you only want the single best match for a given type.
@@ -676,3 +818,5 @@ The entity name and description are both used as part of the model's search crit
 - The `context` field is always derived from the original `text` input - it is not generated by the model.
 - Character offsets (`start`, `end`) refer to byte positions in the original `text` string.
 - There is no fixed limit on the number of entity types you can define in a single request.
+- [Classification keys](#classification-keys) (any entity object with a `labels` list) are routed to the classification model rather than extracted. Use them for boolean or categorical fields - keeping them out of the extraction path improves accuracy for both.
+- `threshold` and `top_n` do not apply to classification keys - the value is a single chosen label, always returned.
