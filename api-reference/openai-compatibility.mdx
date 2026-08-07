@@ -1,0 +1,165 @@
+---
+title: "OpenAI Compatibility"
+description: "Call extract, classify, and summarize synchronously through an OpenAI-compatible /v1/chat/completions endpoint."
+---
+
+## Overview
+
+The `extract`, `summarize`, and `classify` operations are available through a
+standard OpenAI-compatible `POST /v1/chat/completions` endpoint. Select the
+operation with the `model` field — exactly as the [Batch API](/api-reference/batch)
+does. This lets you point an unmodified OpenAI (or OpenRouter) SDK client at
+ScaleDown.
+
+The structured result is returned as a JSON string in
+`choices[0].message.content` — parse it to get the same object the realtime
+`/extract`, `/classify`, and `/summarization/abstractive` endpoints return.
+
+**Request headers**
+
+| Header | Value |
+|--------|-------|
+| `content-type` | `application/json` |
+| `x-api-key` | Your API key |
+
+---
+
+## List models
+
+### `GET /v1/models`
+
+Returns the catalog of ScaleDown operations in the OpenAI list format (with
+additional OpenRouter provider metadata that plain OpenAI clients ignore).
+
+```json
+{
+  "object": "list",
+  "data": [
+    { "id": "extract",   "object": "model", "owned_by": "scaledown", "...": "..." },
+    { "id": "classify",  "object": "model", "owned_by": "scaledown", "...": "..." },
+    { "id": "summarize", "object": "model", "owned_by": "scaledown", "...": "..." }
+  ]
+}
+```
+
+---
+
+## `"model": "summarize"`
+
+Fully standard chat: the **system** message carries optional instructions, the
+last **user** message carries the text.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="https://api.scaledown.ai/v1", api_key="YOUR_KEY")
+
+r = client.chat.completions.create(
+    model="summarize",
+    messages=[
+        {"role": "system", "content": "Be terse; one paragraph."},
+        {"role": "user", "content": "<long text>"},
+    ],
+)
+import json
+print(json.loads(r.choices[0].message.content)["summary"])
+```
+
+`max_tokens` is honored as the standard OpenAI field.
+
+---
+
+## `"model": "extract"`
+
+Define the fields to extract with the standard `response_format` **JSON schema**;
+each property name becomes an entity type and its `description` is the extraction
+hint. Nested objects and arrays are supported. The text comes from the last user
+message.
+
+```python
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Acme Corp invoiced $500 on 2024-01-05."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "invoice",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "vendor": {"type": "string", "description": "company name"},
+                    "amount": {"type": "string", "description": "dollar amount"},
+                    "date":   {"type": "string", "description": "invoice date"},
+                },
+            },
+        },
+    },
+)
+```
+
+The parsed `message.content` matches the `/extract` response
+(`{"entities": [...], "structured_result": {...}, "input_tokens": ...}`).
+
+---
+
+## `"model": "classify"`
+
+Classification needs a per-label **rubric** (decision guidance that drives the
+calibrated scoring), which has no native slot in the OpenAI chat schema. Supply
+`labels` as an array of `{name, rubric}` via the SDK's `extra_body`. The text
+comes from the last user message; an optional `system_prompt` may be passed the
+same way.
+
+```python
+r = client.chat.completions.create(
+    model="classify",
+    messages=[{"role": "user", "content": "My server has been down for 3 hours."}],
+    extra_body={
+        "labels": [
+            {"name": "critical", "rubric": "Service fully down or data loss right now."},
+            {"name": "high",     "rubric": "Major feature broken, no workaround."},
+            {"name": "low",      "rubric": "Cosmetic issue, question, or request."},
+        ]
+    },
+)
+```
+
+Provide between 2 and 26 labels. The parsed `message.content` matches the
+`/classify` response (`top_label`, `scores`, `labels`, `reasoning`, `input_tokens`).
+
+---
+
+## Flat body (batch parity)
+
+For every operation you may instead send the domain fields as top-level keys —
+the same shape as a [batch item `body`](/api-reference/batch) — and they take
+precedence over the message/`response_format` carriers:
+
+```json
+{ "model": "extract", "text": "...", "entities": { "vendor": "company name" } }
+```
+
+This makes a batch item body usable verbatim against the synchronous endpoint.
+
+---
+
+## Response shape
+
+All three operations return a standard `chat.completion`:
+
+```json
+{
+  "id": "chatcmpl-…",
+  "object": "chat.completion",
+  "model": "extract",
+  "choices": [{
+    "index": 0,
+    "message": { "role": "assistant", "content": "{…domain result as JSON string…}" },
+    "finish_reason": "stop"
+  }],
+  "usage": { "prompt_tokens": 123, "completion_tokens": 0, "total_tokens": 123 }
+}
+```
+
+`model` echoes the operation name; `usage.prompt_tokens` carries the operation's
+`input_tokens`.
