@@ -69,6 +69,13 @@
           "api-reference/batch",
           "api-reference/integrate-batch"
         ]
+      },
+      {
+        "group": "OpenAI Compatibility",
+        "icon": "plug",
+        "pages": [
+          "api-reference/openai-compatibility"
+        ]
       }
     ]
   }
