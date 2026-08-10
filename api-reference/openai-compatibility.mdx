@@ -100,6 +100,41 @@ r = client.chat.completions.create(
 The parsed `message.content` matches the `/extract` response
 (`{"entities": [...], "structured_result": {...}, "input_tokens": ...}`).
 
+### Classification within extract
+
+`extract` can also classify a field against a fixed set of labels in the same
+call (the same behavior as the realtime `/extract` endpoint). Express a
+classification field as a constrained-choice property:
+
+- **`enum`** — the values are the labels; an optional `description` becomes the
+  shared rubric.
+- **`oneOf` of `const` branches** — each branch's `description` is that label's
+  rubric (per-label rubrics).
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "product":  { "type": "string", "description": "the product name" },
+    "sentiment": {
+      "enum": ["positive", "negative", "neutral"],
+      "description": "overall sentiment of the review"
+    },
+    "priority": {
+      "oneOf": [
+        { "const": "high", "description": "blocking or urgent" },
+        { "const": "low",  "description": "minor or cosmetic" }
+      ]
+    }
+  }
+}
+```
+
+Plain properties (`product`) are extracted; constrained properties (`sentiment`,
+`priority`) are classified and returned in the extract response's
+`structured_result`. Alternatively, send the classification config through the
+flat `entities` body: `{"sentiment": {"labels": [{"name": ..., "rubric": ...}]}}`.
+
 ---
 
 ## `"model": "classify"`
