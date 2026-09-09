@@ -26,21 +26,12 @@
         ]
       },
       {
-        "group": "Compress",
-        "icon": "compress",
+        "group": "Classify",
+        "icon": "tags",
         "pages": [
-          "api-reference/compress-overview",
-          "api-reference/compress",
-          "api-reference/integrate-compress"
-        ]
-      },
-      {
-        "group": "Summarize",
-        "icon": "align-left",
-        "pages": [
-          "api-reference/summarize-overview",
-          "api-reference/summarize",
-          "api-reference/integrate-summarize"
+          "api-reference/classify-overview",
+          "api-reference/classify",
+          "api-reference/integrate-classify"
         ]
       },
       {
@@ -53,12 +44,21 @@
         ]
       },
       {
-        "group": "Classify",
-        "icon": "tags",
+        "group": "Summarize",
+        "icon": "align-left",
         "pages": [
-          "api-reference/classify-overview",
-          "api-reference/classify",
-          "api-reference/integrate-classify"
+          "api-reference/summarize-overview",
+          "api-reference/summarize",
+          "api-reference/integrate-summarize"
+        ]
+      },
+      {
+        "group": "Compress",
+        "icon": "compress",
+        "pages": [
+          "api-reference/compress-overview",
+          "api-reference/compress",
+          "api-reference/integrate-compress"
         ]
       },
       {
