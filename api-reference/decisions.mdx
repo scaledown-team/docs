@@ -1,0 +1,400 @@
+---
+title: "Decisions"
+openapi: "POST /decisions"
+description: "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score questions against a shared state object."
+---
+
+## Overview
+
+The `/decisions` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice` and `noul` questions are answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses; `score` questions are not supported and come back as an `"unsupported"` answer instead of failing the request.
+
+## Request
+
+<ParamField body="model" type="string">
+  Accepted for Jev request-shape compatibility. Echoed back in the response's `model` field but does not select a different backend model.
+</ParamField>
+
+<ParamField body="state" type="object" required>
+  The item being decided on.
+
+  <Expandable title="State fields">
+    <ParamField body="text" type="string">
+      The text to evaluate every question against. Provide `text`, `document`, or both.
+    </ParamField>
+
+    <ParamField body="document" type="string">
+      A base64-encoded file to evaluate. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. Non-standard extension - not part of the Jev API.
+    </ParamField>
+
+    <ParamField body="document_mime_type" type="string">
+      MIME type of `document` (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="questions" type="object" required>
+  A map of question name → question definition. Must contain at least one entry. Every question is answered against the same `state`, concurrently.
+
+  <Expandable title="choice question">
+    <ParamField body="type" type="string" required>
+      `"choice"` - pick exactly one option from `criteria`.
+    </ParamField>
+
+    <ParamField body="instructions" type="string">
+      Optional guidance for how to choose (e.g. "Which single category best describes the post?").
+    </ParamField>
+
+    <ParamField body="criteria" type="object" required>
+      Map of option key → description, e.g. `{ "billing": "About a charge, invoice, or refund." }`. At least one entry required.
+    </ParamField>
+  </Expandable>
+
+  <Expandable title="noul question">
+    <ParamField body="type" type="string" required>
+      `"noul"` - an independent yes/no question, answered as a probability.
+    </ParamField>
+
+    <ParamField body="instructions" type="string">
+      The yes/no question to evaluate, e.g. `"Is the sentiment positive?"`.
+    </ParamField>
+  </Expandable>
+
+  <Expandable title="score question (unsupported)">
+    <ParamField body="type" type="string" required>
+      `"score"` - accepted for request-shape compatibility only. Always answered with `{"type": "unsupported"}`; see [Unsupported: score](/api-reference/decisions-overview#unsupported-score).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="model" type="string">
+  Echoes `model` from the request, or the default model if none was given.
+</ResponseField>
+
+<ResponseField name="answers" type="object">
+  Map of question name → typed answer, matching the `questions` keys from the request.
+
+  <Expandable title="choice answer">
+    <ResponseField name="type" type="string">
+      `"choice"`
+    </ResponseField>
+    <ResponseField name="choice" type="string">
+      The chosen option key.
+    </ResponseField>
+    <ResponseField name="probabilities" type="object">
+      Map of option key → probability. Sums to `1.0`.
+    </ResponseField>
+    <ResponseField name="confidence" type="number">
+      The chosen option's probability (same value as `probabilities[choice]`).
+    </ResponseField>
+  </Expandable>
+
+  <Expandable title="noul answer">
+    <ResponseField name="type" type="string">
+      `"noul"`
+    </ResponseField>
+    <ResponseField name="noul" type="number">
+      P(yes) - independent probability, 0 to 1.
+    </ResponseField>
+  </Expandable>
+
+  <Expandable title="unsupported answer">
+    <ResponseField name="type" type="string">
+      `"unsupported"`
+    </ResponseField>
+    <ResponseField name="reason" type="string">
+      Why this question type isn't answered - always `"'score' questions are not supported by this API"` today.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Token usage and cost, summed across every internal call the request fanned out to (one per `choice`/`noul` question).
+
+  <Expandable title="Usage fields">
+    <ResponseField name="input_tokens" type="integer">
+      Sum of input tokens across every question answered.
+    </ResponseField>
+    <ResponseField name="output_tokens" type="integer">
+      Sum of output tokens across every question answered.
+    </ResponseField>
+    <ResponseField name="cost" type="number">
+      Total cost in USD for the request.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, neither `state.text` nor `state.document` provided, or OCR failed. |
+| `402 Payment Required` | Insufficient credits. |
+| `502 Bad Gateway` | Model service unavailable or returned an error. |
+| `504 Gateway Timeout` | Request timed out. |
+
+## Authentication
+
+Include your API key in every request using the `x-api-key` header.
+
+```bash
+-H "x-api-key: <your-api-key>"
+```
+
+## Examples
+
+### Single choice question
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/decisions \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "model": "scaledown/classify-1",
+    "state": { "text": "I was charged twice for my subscription this month." },
+    "questions": {
+      "category": {
+        "type": "choice",
+        "instructions": "Which single category best describes the post?",
+        "criteria": {
+          "billing": "About a charge, invoice, refund, or payment problem.",
+          "technical": "About a bug or something not working.",
+          "account": "About login, access, or account settings."
+        }
+      }
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/decisions",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "model": "scaledown/classify-1",
+        "state": {"text": "I was charged twice for my subscription this month."},
+        "questions": {
+            "category": {
+                "type": "choice",
+                "instructions": "Which single category best describes the post?",
+                "criteria": {
+                    "billing": "About a charge, invoice, refund, or payment problem.",
+                    "technical": "About a bug or something not working.",
+                    "account": "About login, access, or account settings.",
+                },
+            }
+        },
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/decisions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    model: "scaledown/classify-1",
+    state: { text: "I was charged twice for my subscription this month." },
+    questions: {
+      category: {
+        type: "choice",
+        instructions: "Which single category best describes the post?",
+        criteria: {
+          billing: "About a charge, invoice, refund, or payment problem.",
+          technical: "About a bug or something not working.",
+          account: "About login, access, or account settings.",
+        },
+      },
+    },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "model": "scaledown/classify-1",
+  "answers": {
+    "category": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": { "billing": 0.93, "technical": 0.04, "account": 0.03 },
+      "confidence": 0.93
+    }
+  },
+  "usage": { "input_tokens": 62, "output_tokens": 1, "cost": 0.0000026 }
+}
+```
+
+---
+
+### Mixed choice + noul questions
+
+`choice` and `noul` questions can be combined in one request. Both are answered concurrently against the same `state`.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/decisions \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "state": { "text": "The invoice is overdue and the customer is threatening to cancel." },
+    "questions": {
+      "category": {
+        "type": "choice",
+        "criteria": {
+          "billing": "About a charge, invoice, or payment matter.",
+          "legal": "About a legal or contractual dispute."
+        }
+      },
+      "is_churn_risk": {
+        "type": "noul",
+        "instructions": "Does this text signal the customer may cancel or leave?"
+      }
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/decisions",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "state": {"text": "The invoice is overdue and the customer is threatening to cancel."},
+        "questions": {
+            "category": {
+                "type": "choice",
+                "criteria": {
+                    "billing": "About a charge, invoice, or payment matter.",
+                    "legal": "About a legal or contractual dispute.",
+                },
+            },
+            "is_churn_risk": {
+                "type": "noul",
+                "instructions": "Does this text signal the customer may cancel or leave?",
+            },
+        },
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/decisions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    state: { text: "The invoice is overdue and the customer is threatening to cancel." },
+    questions: {
+      category: {
+        type: "choice",
+        criteria: {
+          billing: "About a charge, invoice, or payment matter.",
+          legal: "About a legal or contractual dispute.",
+        },
+      },
+      is_churn_risk: {
+        type: "noul",
+        instructions: "Does this text signal the customer may cancel or leave?",
+      },
+    },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "model": "scaledown/classify-1",
+  "answers": {
+    "category": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": { "billing": 0.88, "legal": 0.12 },
+      "confidence": 0.88
+    },
+    "is_churn_risk": { "type": "noul", "noul": 0.79 }
+  },
+  "usage": { "input_tokens": 94, "output_tokens": 2, "cost": 0.0000039 }
+}
+```
+
+---
+
+### A `score` question in the mix
+
+`score` questions are accepted but always answered as `"unsupported"` - the rest of the request still succeeds.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/decisions \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "state": { "text": "Great product, but the onboarding was confusing." },
+    "questions": {
+      "sentiment": {
+        "type": "choice",
+        "criteria": { "positive": "Overall positive tone.", "negative": "Overall negative tone." }
+      },
+      "quality_score": {
+        "type": "score",
+        "instructions": "Rate overall quality from 1 to 5."
+      }
+    }
+  }'
+```
+
+</CodeGroup>
+
+**Response:** `sentiment` is answered normally; `quality_score` comes back as `unsupported` and costs nothing.
+
+```json
+{
+  "model": "scaledown/classify-1",
+  "answers": {
+    "sentiment": {
+      "type": "choice",
+      "choice": "positive",
+      "probabilities": { "positive": 0.81, "negative": 0.19 },
+      "confidence": 0.81
+    },
+    "quality_score": {
+      "type": "unsupported",
+      "reason": "'score' questions are not supported by this API"
+    }
+  },
+  "usage": { "input_tokens": 41, "output_tokens": 1, "cost": 0.0000017 }
+}
+```
+
+## Notes
+
+- Every `choice`/`noul` question in a request is one separate calibrated model call, run concurrently. `usage` is the sum across all of them - a request with a `choice` and two `noul` questions makes 3 calls and bills for all 3.
+- No `reasoning` field exists on this endpoint - it never generates a free-form explanation, unlike `/classify` with `reasoning: true`.
+- No batching - each request evaluates one `state`. To classify many items, use [`/classify`](/api-reference/classify)'s `chunks` array instead.
+- See [Differences from Jev](/api-reference/decisions-overview#differences-from-jev) for the full compatibility matrix.
