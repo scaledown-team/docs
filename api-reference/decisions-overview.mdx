@@ -1,0 +1,54 @@
+---
+title: "Overview"
+description: "A Jev-compatible decisions API: ask typed choice, noul, and score questions against a shared state object."
+---
+
+## What it does
+
+The `/v1/scaledown` endpoint answers typed questions about a piece of text or a document, in the same request/response shape as [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) (`POST /api/alpha/decisions` on OpenRouter). If you already have integration code written against Jev, it should work against `/v1/scaledown` with only the base URL changed.
+
+You send a `state` object (the item being decided on) and a `questions` map, where each question is one of three typed primitives:
+
+- **`choice`** - pick exactly one option from a set of criteria. Backed by the same calibrated single-label decode as [`/classify`](/api-reference/classify).
+- **`noul`** - an independent yes/no question, answered as a probability. Backed by the same calibrated binary decode `/classify` uses in multi-label mode.
+- **`score`** - an ordered-scale question. **Not supported** - see [Unsupported: `score`](#unsupported-score) below.
+
+Every question in a request is answered against the same shared `state`, concurrently.
+
+## When to use it
+
+**You're porting an existing Jev integration.** `/v1/scaledown` accepts the same request shape and returns the same response shape, so a Jev-based routing or tagging layer can point at `api.scaledown.xyz` instead with minimal changes.
+
+**You want several classification decisions from one request.** Mix `choice` and `noul` questions in a single call - e.g. pick a category *and* check three independent tags - instead of making separate `/classify` calls.
+
+**You don't need our classify-specific features.** `/v1/scaledown` is a thin, standard-shaped layer over `/classify`. If you need batching (`chunks`), image-direct multimodal input, or the free-form `reasoning` explanation, use [`/classify`](/api-reference/classify) directly - `/v1/scaledown` intentionally doesn't expose those.
+
+## How it fits into your workflow
+
+```
+[Jev-shaped request] → [POST /v1/scaledown] → [choice/noul answered via /classify's scoring] → [answers + usage]
+```
+
+Internally, each `choice` question becomes one single-label classify call (its `criteria` become labels), and each `noul` question becomes one binary yes/no classify call. Both run concurrently against the shared `state`, and the response's `usage` is the sum of every internal call's tokens.
+
+## Unsupported: `score`
+
+We have no ordered-scale scoring primitive today - only mutually-exclusive `choice` and independent `noul` decodes. A `score` question is still accepted (so a mixed-type request doesn't fail outright), but its answer comes back as:
+
+```json
+{ "type": "unsupported", "reason": "'score' questions are not supported by this API" }
+```
+
+Every other question in the same request is still answered normally. If you need an ordered scale today, model it as a `choice` question with your scale points as options (e.g. `"1"`, `"2"`, `"3"`, `"4"`, `"5"`) and use `probabilities` to see how confident the model was, or ask us about adding native `score` support.
+
+## Differences from Jev
+
+| | Jev | `/v1/scaledown` |
+|---|---|---|
+| `choice` / `noul` | ✅ | ✅ |
+| `score` | ✅ | ❌ - returns `"unsupported"` |
+| Mixed question types per request | ✅ | ✅ - routed internally, answered concurrently |
+| Arbitrary multi-field `state` object | ✅ | Only `state.text` / `state.document` are read |
+| Batch input (many items per request) | ❌ | Not on `/v1/scaledown` - use [`/classify`](/api-reference/classify)'s `chunks` |
+| Document / image classification | ❌ | `state.document` + `state.document_mime_type` (non-standard extension) |
+| Free-form reasoning explanation | ❌ | Not available on this endpoint (see [`/classify`](/api-reference/classify)'s `reasoning` field) |

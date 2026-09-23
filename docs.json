@@ -35,6 +35,15 @@
         ]
       },
       {
+        "group": "Decisions",
+        "icon": "split",
+        "pages": [
+          "api-reference/decisions-overview",
+          "api-reference/decisions",
+          "api-reference/integrate-decisions"
+        ]
+      },
+      {
         "group": "Extract",
         "icon": "magnifying-glass",
         "pages": [
