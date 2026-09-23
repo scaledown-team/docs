@@ -261,7 +261,7 @@
         }
       }
     },
-    "/decisions": {
+    "/v1/scaledown": {
       "post": {
         "summary": "Decisions",
         "description": "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score questions about a shared state object.",

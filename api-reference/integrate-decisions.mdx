@@ -1,9 +1,9 @@
 ---
 title: "Integrate Decisions"
-description: "Copy-paste AI prompts to generate integration code for the /decisions endpoint."
+description: "Copy-paste AI prompts to generate integration code for the /v1/scaledown endpoint."
 ---
 
-Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate integration code for the `/decisions` endpoint. Start with the **quick integration** prompt to get something working fast, or use the **production-ready** prompt if you're building for a live environment.
+Copy one of these prompts into Claude, ChatGPT, or any AI assistant to generate integration code for the `/v1/scaledown` endpoint. Start with the **quick integration** prompt to get something working fast, or use the **production-ready** prompt if you're building for a live environment.
 
 ## Prompts
 
@@ -16,7 +16,7 @@ Write a Python function `answer_decisions(state: dict, questions: dict, api_key:
 that calls the ScaleDown decisions API and returns the full response as a dict.
 
 API details:
-- Endpoint: POST https://api.scaledown.xyz/decisions
+- Endpoint: POST https://api.scaledown.xyz/v1/scaledown
 - Auth: HTTP header `x-api-key: <your key>`
 - Request body (JSON):
     {
@@ -73,7 +73,7 @@ Paste this prompt to generate a fully typed Python service class with error hand
 Write a production-quality Python module for integrating the ScaleDown decisions API.
 
 API details:
-- Endpoint: POST https://api.scaledown.xyz/decisions
+- Endpoint: POST https://api.scaledown.xyz/v1/scaledown
 - Auth: HTTP header `x-api-key: <your key>`, read from the DECISIONS_API_KEY environment
   variable if not passed explicitly.
 - Request body: { "model"?: str, "state": { "text"?: str, "document"?: str,
@@ -107,11 +107,11 @@ Requirements:
 
 ## Porting from Jev
 
-If you have existing code calling `POST https://openrouter.ai/api/alpha/decisions`, porting to `/decisions` is mostly a base-URL and auth-header swap:
+If you have existing code calling `POST https://openrouter.ai/api/alpha/decisions`, porting to `/v1/scaledown` is mostly a base-URL and auth-header swap:
 
-| | Jev | ScaleDown `/decisions` |
+| | Jev | ScaleDown `/v1/scaledown` |
 |---|---|---|
-| URL | `https://openrouter.ai/api/alpha/decisions` | `https://api.scaledown.xyz/decisions` |
+| URL | `https://openrouter.ai/api/alpha/decisions` | `https://api.scaledown.xyz/v1/scaledown` |
 | Auth header | `Authorization: Bearer <key>` | `x-api-key: <key>` |
 | `choice` / `noul` questions | ✅ | ✅ unchanged |
 | `score` questions | ✅ real answer | ❌ `"unsupported"` - see [Unsupported: score](/api-reference/decisions-overview#unsupported-score) |

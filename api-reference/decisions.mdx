@@ -1,12 +1,12 @@
 ---
 title: "Decisions"
-openapi: "POST /decisions"
+openapi: "POST /v1/scaledown"
 description: "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score questions against a shared state object."
 ---
 
 ## Overview
 
-The `/decisions` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice` and `noul` questions are answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses; `score` questions are not supported and come back as an `"unsupported"` answer instead of failing the request.
+The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice` and `noul` questions are answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses; `score` questions are not supported and come back as an `"unsupported"` answer instead of failing the request.
 
 ## Request
 
@@ -149,7 +149,7 @@ Include your API key in every request using the `x-api-key` header.
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/decisions \
+curl -X POST https://api.scaledown.xyz/v1/scaledown \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
@@ -173,7 +173,7 @@ curl -X POST https://api.scaledown.xyz/decisions \
 import requests
 
 response = requests.post(
-    "https://api.scaledown.xyz/decisions",
+    "https://api.scaledown.xyz/v1/scaledown",
     headers={"x-api-key": "<your-api-key>"},
     json={
         "model": "scaledown/classify-1",
@@ -195,7 +195,7 @@ print(response.json())
 ```
 
 ```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/decisions", {
+const response = await fetch("https://api.scaledown.xyz/v1/scaledown", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -248,7 +248,7 @@ const data = await response.json();
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/decisions \
+curl -X POST https://api.scaledown.xyz/v1/scaledown \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
@@ -273,7 +273,7 @@ curl -X POST https://api.scaledown.xyz/decisions \
 import requests
 
 response = requests.post(
-    "https://api.scaledown.xyz/decisions",
+    "https://api.scaledown.xyz/v1/scaledown",
     headers={"x-api-key": "<your-api-key>"},
     json={
         "state": {"text": "The invoice is overdue and the customer is threatening to cancel."},
@@ -296,7 +296,7 @@ print(response.json())
 ```
 
 ```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/decisions", {
+const response = await fetch("https://api.scaledown.xyz/v1/scaledown", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -351,7 +351,7 @@ const data = await response.json();
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/decisions \
+curl -X POST https://api.scaledown.xyz/v1/scaledown \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
