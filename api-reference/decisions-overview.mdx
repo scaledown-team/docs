@@ -33,22 +33,31 @@ Internally, each `choice` question becomes one single-label classify call (its `
 
 ## Unsupported: `score`
 
-We have no ordered-scale scoring primitive today - only mutually-exclusive `choice` and independent `noul` decodes. A `score` question is still accepted (so a mixed-type request doesn't fail outright), but its answer comes back as:
+We have no ordered-scale scoring primitive today - only mutually-exclusive `choice` and independent `noul` decodes. What happens with a `score` question depends on what else is in the request:
 
-```json
-{ "type": "unsupported", "reason": "'score' questions are not supported by this API" }
-```
+- **Alongside a `choice`/`noul` question:** the request still succeeds (`200`). Every other question is answered normally; the `score` question's answer comes back as:
 
-Every other question in the same request is still answered normally. If you need an ordered scale today, model it as a `choice` question with your scale points as options (e.g. `"1"`, `"2"`, `"3"`, `"4"`, `"5"`) and use `probabilities` to see how confident the model was, or ask us about adding native `score` support.
+  ```json
+  { "type": "unsupported", "reason": "'score' questions are not supported by this API" }
+  ```
+
+- **On its own, or with only other `score` questions:** the request fails with `422` instead - there's nothing in it that could be answered, so it doesn't make sense to return a `200` full of `"unsupported"` placeholders.
+
+If you need an ordered scale today, model it as a `choice` question with your scale points as options (e.g. `"1"`, `"2"`, `"3"`, `"4"`, `"5"`) and use `probabilities` to see how confident the model was, or ask us about adding native `score` support.
+
+## Model
+
+The only supported `model` value is `"classify-1"`, which is also the default when the field is omitted. Sending any other value returns `422`. There's currently no way to select a different backend model through this endpoint.
 
 ## Differences from Jev
 
 | | Jev | `/v1/scaledown` |
 |---|---|---|
 | `choice` / `noul` | ✅ | ✅ |
-| `score` | ✅ | ❌ - returns `"unsupported"` |
+| `score` | ✅ | ❌ - `"unsupported"` in a mixed request, `422` if the whole request is `score` |
 | Mixed question types per request | ✅ | ✅ - routed internally, answered concurrently |
 | Arbitrary multi-field `state` object | ✅ | Only `state.text` / `state.document` are read |
+| Model selection | Multiple models | Only `"classify-1"` |
 | Batch input (many items per request) | ❌ | Not on `/v1/scaledown` - use [`/classify`](/api-reference/classify)'s `chunks` |
 | Document / image classification | ❌ | `state.document` + `state.document_mime_type` (non-standard extension) |
 | Free-form reasoning explanation | ❌ | Not available on this endpoint (see [`/classify`](/api-reference/classify)'s `reasoning` field) |
