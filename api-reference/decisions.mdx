@@ -6,12 +6,12 @@ description: "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score
 
 ## Overview
 
-The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice` and `noul` questions are answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses; `score` questions are not supported and come back as an `"unsupported"` answer instead of failing the request.
+The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice` and `noul` questions are answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses; `score` questions are not supported - see [`score` behavior](#score-behavior) below.
 
 ## Request
 
-<ParamField body="model" type="string">
-  Accepted for Jev request-shape compatibility. Echoed back in the response's `model` field but does not select a different backend model.
+<ParamField body="model" type="string" default="classify-1">
+  Optional. The only supported value is `"classify-1"`, which is also the default when omitted. Any other value is rejected with `422`.
 </ParamField>
 
 <ParamField body="state" type="object" required>
@@ -61,7 +61,7 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
 
   <Expandable title="score question (unsupported)">
     <ParamField body="type" type="string" required>
-      `"score"` - accepted for request-shape compatibility only. Always answered with `{"type": "unsupported"}`; see [Unsupported: score](/api-reference/decisions-overview#unsupported-score).
+      `"score"` - accepted for request-shape compatibility only, never actually evaluated. See [`score` behavior](#score-behavior).
     </ParamField>
   </Expandable>
 </ParamField>
@@ -69,7 +69,7 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
 ## Response
 
 <ResponseField name="model" type="string">
-  Echoes `model` from the request, or the default model if none was given.
+  Always `"classify-1"`.
 </ResponseField>
 
 <ResponseField name="answers" type="object">
@@ -104,7 +104,7 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
       `"unsupported"`
     </ResponseField>
     <ResponseField name="reason" type="string">
-      Why this question type isn't answered - always `"'score' questions are not supported by this API"` today.
+      Why this question type isn't answered - always `"'score' questions are not supported by this API"` today. Only appears in a **mixed** request that also has at least one `choice`/`noul` question - see [`score` behavior](#score-behavior).
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -125,11 +125,18 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
   </Expandable>
 </ResponseField>
 
+## `score` behavior
+
+We have no ordered-scale scoring primitive, so a `score` question is never actually evaluated. What happens depends on whether the request has anything else in it:
+
+- **Mixed request** (at least one `choice`/`noul` question alongside the `score` question(s)): returns `200`. The `choice`/`noul` questions are answered normally; each `score` question's answer comes back as `{"type": "unsupported", "reason": "..."}` and contributes nothing to `usage`.
+- **All-`score` request** (every question in `questions` is type `score`): returns `422`. Nothing in the request could be answered, so it fails outright instead of returning a `200` full of `"unsupported"` placeholders.
+
 ## Error responses
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, neither `state.text` nor `state.document` provided, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, neither `state.text` nor `state.document` provided, every question in the request is type `score`, an unsupported `model` value, or OCR failed. |
 | `402 Payment Required` | Insufficient credits. |
 | `502 Bad Gateway` | Model service unavailable or returned an error. |
 | `504 Gateway Timeout` | Request timed out. |
@@ -153,7 +160,7 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "model": "scaledown/classify-1",
+    "model": "classify-1",
     "state": { "text": "I was charged twice for my subscription this month." },
     "questions": {
       "category": {
@@ -176,7 +183,7 @@ response = requests.post(
     "https://api.scaledown.xyz/v1/scaledown",
     headers={"x-api-key": "<your-api-key>"},
     json={
-        "model": "scaledown/classify-1",
+        "model": "classify-1",
         "state": {"text": "I was charged twice for my subscription this month."},
         "questions": {
             "category": {
@@ -202,7 +209,7 @@ const response = await fetch("https://api.scaledown.xyz/v1/scaledown", {
     "x-api-key": "<your-api-key>",
   },
   body: JSON.stringify({
-    model: "scaledown/classify-1",
+    model: "classify-1",
     state: { text: "I was charged twice for my subscription this month." },
     questions: {
       category: {
@@ -226,7 +233,7 @@ const data = await response.json();
 
 ```json
 {
-  "model": "scaledown/classify-1",
+  "model": "classify-1",
   "answers": {
     "category": {
       "type": "choice",
@@ -328,7 +335,7 @@ const data = await response.json();
 
 ```json
 {
-  "model": "scaledown/classify-1",
+  "model": "classify-1",
   "answers": {
     "category": {
       "type": "choice",
@@ -375,7 +382,7 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
 
 ```json
 {
-  "model": "scaledown/classify-1",
+  "model": "classify-1",
   "answers": {
     "sentiment": {
       "type": "choice",
@@ -392,9 +399,44 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
 }
 ```
 
+---
+
+### An all-`score` request
+
+When **every** question in the request is `score`, nothing can be answered, so the request fails with `422` instead of returning `200` with everything marked unsupported.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/v1/scaledown \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "state": { "text": "Great product, but the onboarding was confusing." },
+    "questions": {
+      "quality_score": {
+        "type": "score",
+        "instructions": "Rate overall quality from 1 to 5."
+      }
+    }
+  }'
+```
+
+</CodeGroup>
+
+**Response:** `422 Unprocessable Entity`
+
+```json
+{
+  "detail": "'score' questions are not supported by this API, and no other question type was provided to answer."
+}
+```
+
 ## Notes
 
+- `"classify-1"` is the only supported `model`. Omit it (defaults to `"classify-1"`) or pass it explicitly - any other value is rejected with `422`.
 - Every `choice`/`noul` question in a request is one separate calibrated model call, run concurrently. `usage` is the sum across all of them - a request with a `choice` and two `noul` questions makes 3 calls and bills for all 3.
+- A request made entirely of `score` questions returns `422`, not `200` - see [`score` behavior](#score-behavior).
 - No `reasoning` field exists on this endpoint - it never generates a free-form explanation, unlike `/classify` with `reasoning: true`.
 - No batching - each request evaluates one `state`. To classify many items, use [`/classify`](/api-reference/classify)'s `chunks` array instead.
 - See [Differences from Jev](/api-reference/decisions-overview#differences-from-jev) for the full compatibility matrix.

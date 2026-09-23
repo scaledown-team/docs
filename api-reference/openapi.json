@@ -276,7 +276,9 @@
                 "properties": {
                   "model": {
                     "type": "string",
-                    "description": "Optional. Echoed back in the response's model field."
+                    "enum": ["classify-1"],
+                    "default": "classify-1",
+                    "description": "Optional. \"classify-1\" is the only supported value and also the default when omitted. Any other value returns 422."
                   },
                   "state": {
                     "type": "object",
@@ -306,7 +308,7 @@
                         "type": {
                           "type": "string",
                           "enum": ["choice", "noul", "score"],
-                          "description": "choice: pick one option from criteria. noul: independent yes/no question. score: accepted but always answered as unsupported."
+                          "description": "choice: pick one option from criteria. noul: independent yes/no question. score: never evaluated — answered as unsupported if the request also has a choice/noul question, or causes the whole request to fail with 422 if every question is score."
                         },
                         "instructions": {
                           "type": "string",
@@ -335,7 +337,7 @@
                   "properties": {
                     "model": {
                       "type": "string",
-                      "description": "Echoes model from the request, or the default model if none was given."
+                      "description": "Always \"classify-1\"."
                     },
                     "answers": {
                       "type": "object",
@@ -386,7 +388,7 @@
             }
           },
           "402": { "description": "Insufficient credits." },
-          "422": { "description": "Malformed request body, empty questions map, empty criteria on a choice question, or neither state.text nor state.document provided." },
+          "422": { "description": "Malformed request body, empty questions map, empty criteria on a choice question, neither state.text nor state.document provided, every question in the request is type score, an unsupported model value, or OCR failed." },
           "502": { "description": "Model service unavailable or returned an error." },
           "504": { "description": "Request timed out." }
         }
