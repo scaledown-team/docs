@@ -11,7 +11,7 @@ You send a `state` object (the item being decided on) and a `questions` map, whe
 
 - **`choice`** - pick exactly one option from a set of criteria. Backed by the same calibrated single-label decode as [`/classify`](/api-reference/classify).
 - **`noul`** - an independent yes/no question, answered as a probability. Backed by the same calibrated binary decode `/classify` uses in multi-label mode.
-- **`score`** - an ordered-scale question. **Not supported** - see [Unsupported: `score`](#unsupported-score) below.
+- **`score`** - an ordered-scale question, e.g. rating severity or quality. Answered with the same calibrated decode as `choice`, over an ordered list of levels, then reduced to a probability-weighted expected value - see [How `score` is calculated](/api-reference/decisions#how-score-is-calculated).
 
 Every question in a request is answered against the same shared `state`, concurrently.
 
@@ -19,31 +19,17 @@ Every question in a request is answered against the same shared `state`, concurr
 
 **You're porting an existing Jev integration.** `/v1/scaledown` accepts the same request shape and returns the same response shape, so a Jev-based routing or tagging layer can point at `api.scaledown.xyz` instead with minimal changes.
 
-**You want several classification decisions from one request.** Mix `choice` and `noul` questions in a single call - e.g. pick a category *and* check three independent tags - instead of making separate `/classify` calls.
+**You want several classification decisions from one request.** Mix `choice`, `noul`, and `score` questions in a single call - e.g. pick a category, check an independent tag, *and* rate severity - instead of making separate `/classify` calls.
 
 **You don't need our classify-specific features.** `/v1/scaledown` is a thin, standard-shaped layer over `/classify`. If you need batching (`chunks`), image-direct multimodal input, or the free-form `reasoning` explanation, use [`/classify`](/api-reference/classify) directly - `/v1/scaledown` intentionally doesn't expose those.
 
 ## How it fits into your workflow
 
 ```
-[Jev-shaped request] → [POST /v1/scaledown] → [choice/noul answered via /classify's scoring] → [answers + usage]
+[Jev-shaped request] → [POST /v1/scaledown] → [choice/noul/score answered via /classify's scoring] → [answers + usage]
 ```
 
-Internally, each `choice` question becomes one single-label classify call (its `criteria` become labels), and each `noul` question becomes one binary yes/no classify call. Both run concurrently against the shared `state`, and the response's `usage` is the sum of every internal call's tokens.
-
-## Unsupported: `score`
-
-We have no ordered-scale scoring primitive today - only mutually-exclusive `choice` and independent `noul` decodes. What happens with a `score` question depends on what else is in the request:
-
-- **Alongside a `choice`/`noul` question:** the request still succeeds (`200`). Every other question is answered normally; the `score` question's answer comes back as:
-
-  ```json
-  { "type": "unsupported", "reason": "'score' questions are not supported by this API" }
-  ```
-
-- **On its own, or with only other `score` questions:** the request fails with `422` instead - there's nothing in it that could be answered, so it doesn't make sense to return a `200` full of `"unsupported"` placeholders.
-
-If you need an ordered scale today, model it as a `choice` question with your scale points as options (e.g. `"1"`, `"2"`, `"3"`, `"4"`, `"5"`) and use `probabilities` to see how confident the model was, or ask us about adding native `score` support.
+Internally, each `choice` question becomes one single-label classify call (its `criteria` become labels), each `noul` question becomes one binary yes/no classify call, and each `score` question becomes one single-label classify call over its ordered levels (reduced afterward to an expected value). All run concurrently against the shared `state`, and the response's `usage` is the sum of every internal call's tokens.
 
 ## Model
 
@@ -53,8 +39,7 @@ The only supported `model` value is `"classify-1"`, which is also the default wh
 
 | | Jev | `/v1/scaledown` |
 |---|---|---|
-| `choice` / `noul` | ✅ | ✅ |
-| `score` | ✅ | ❌ - `"unsupported"` in a mixed request, `422` if the whole request is `score` |
+| `choice` / `noul` / `score` | ✅ | ✅ |
 | Mixed question types per request | ✅ | ✅ - routed internally, answered concurrently |
 | Arbitrary multi-field `state` object | ✅ | Only `state.text` / `state.document` are read |
 | Model selection | Multiple models | Only `"classify-1"` |

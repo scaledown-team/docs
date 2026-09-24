@@ -6,7 +6,7 @@ description: "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score
 
 ## Overview
 
-The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice` and `noul` questions are answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses; `score` questions are not supported - see [`score` behavior](#score-behavior) below.
+The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://openrouter.ai/docs/guides/community/jev) request/response shape. You send a `state` object plus a `questions` map, and get back one typed `answer` per question. `choice`, `noul`, and `score` questions are all answered using the same calibrated scoring [`/classify`](/api-reference/classify) uses.
 
 ## Request
 
@@ -59,9 +59,17 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
     </ParamField>
   </Expandable>
 
-  <Expandable title="score question (unsupported)">
+  <Expandable title="score question">
     <ParamField body="type" type="string" required>
-      `"score"` - accepted for request-shape compatibility only, never actually evaluated. See [`score` behavior](#score-behavior).
+      `"score"` - an ordered-scale question, answered as a position on the scale.
+    </ParamField>
+
+    <ParamField body="instructions" type="string">
+      Optional guidance for how to score (e.g. "How severe is the reported issue?").
+    </ParamField>
+
+    <ParamField body="criteria" type="array" required>
+      An **ordered** list of 2 to 10 level descriptions, from lowest to highest, e.g. `["Cosmetic; no impact to functionality", "Broken or degraded feature, but workaround exists", "Blocking issue; no workaround exists"]`. Levels are indexed by array position starting at `0` - unlike `choice`'s `criteria`, this is an array, not a map, because the order is meaningful.
     </ParamField>
   </Expandable>
 </ParamField>
@@ -99,18 +107,27 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
     </ResponseField>
   </Expandable>
 
-  <Expandable title="unsupported answer">
+  <Expandable title="score answer">
     <ResponseField name="type" type="string">
-      `"unsupported"`
+      `"score"`
     </ResponseField>
-    <ResponseField name="reason" type="string">
-      Why this question type isn't answered - always `"'score' questions are not supported by this API"` today. Only appears in a **mixed** request that also has at least one `choice`/`noul` question - see [`score` behavior](#score-behavior).
+    <ResponseField name="score" type="number">
+      Probability-weighted expected value across the levels: `Σ (level_index × P(level))`. A continuous position on the scale, e.g. `1.43` for a 3-level (`0`, `1`, `2`) scale - not necessarily a whole level.
+    </ResponseField>
+    <ResponseField name="confidence" type="number">
+      The most likely level's probability mass (same value as `max(probabilities.values())`).
+    </ResponseField>
+    <ResponseField name="legend" type="object">
+      Map of level index (as a string, e.g. `"0"`) → its description, echoing `criteria` back for display.
+    </ResponseField>
+    <ResponseField name="probabilities" type="object">
+      Map of level index (as a string) → probability. Sums to `1.0`.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="usage" type="object">
-  Token usage and cost, summed across every internal call the request fanned out to (one per `choice`/`noul` question).
+  Token usage and cost, summed across every internal call the request fanned out to (one per question, regardless of type).
 
   <Expandable title="Usage fields">
     <ResponseField name="input_tokens" type="integer">
@@ -125,18 +142,23 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
   </Expandable>
 </ResponseField>
 
-## `score` behavior
+## How `score` is calculated
 
-We have no ordered-scale scoring primitive, so a `score` question is never actually evaluated. What happens depends on whether the request has anything else in it:
+A `score` question is answered with the same constrained, calibrated decode `choice` uses - one model call scores every level in `criteria`, producing a probability distribution over them (`probabilities`). That distribution is then reduced to a single continuous `score` value: the probability-weighted expected value across level indices.
 
-- **Mixed request** (at least one `choice`/`noul` question alongside the `score` question(s)): returns `200`. The `choice`/`noul` questions are answered normally; each `score` question's answer comes back as `{"type": "unsupported", "reason": "..."}` and contributes nothing to `usage`.
-- **All-`score` request** (every question in `questions` is type `score`): returns `422`. Nothing in the request could be answered, so it fails outright instead of returning a `200` full of `"unsupported"` placeholders.
+For example, given `criteria` with 3 levels (indices `0`, `1`, `2`) and `probabilities: {"0": 0.0, "1": 0.57, "2": 0.43}`:
+
+```
+score = 0×0.0 + 1×0.57 + 2×0.43 = 1.43
+```
+
+`score` is therefore a continuous position on the scale, not necessarily a whole level - a value near `1.43` says the model leans toward level 2 but isn't fully decided between levels 1 and 2. Use `probabilities` (or `confidence`, the top level's own probability) if you need the calibration behind that number instead of just the point estimate.
 
 ## Error responses
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, neither `state.text` nor `state.document` provided, every question in the request is type `score`, an unsupported `model` value, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, `criteria` outside the 2-10 range on a `score` question, neither `state.text` nor `state.document` provided, an unsupported `model` value, or OCR failed. |
 | `402 Payment Required` | Insufficient credits. |
 | `502 Bad Gateway` | Model service unavailable or returned an error. |
 | `504 Gateway Timeout` | Request timed out. |
@@ -351,9 +373,117 @@ const data = await response.json();
 
 ---
 
-### A `score` question in the mix
+### A `score` question
 
-`score` questions are accepted but always answered as `"unsupported"` - the rest of the request still succeeds.
+Use `score` for an ordered-scale rating, like severity or quality. `criteria` is an ordered array, not a map - level `0` is the first item, level `1` the second, and so on.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/v1/scaledown \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "state": { "text": "The export button crashes the settings page in Safari. It works in Chrome, but a few of our customers only use Safari." },
+    "questions": {
+      "bug_severity": {
+        "type": "score",
+        "instructions": "How severe is the reported issue?",
+        "criteria": [
+          "Cosmetic; no impact to functionality",
+          "Broken or degraded feature, but workaround exists",
+          "Blocking issue; no workaround exists"
+        ]
+      }
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/v1/scaledown",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "state": {
+            "text": "The export button crashes the settings page in Safari. "
+            "It works in Chrome, but a few of our customers only use Safari."
+        },
+        "questions": {
+            "bug_severity": {
+                "type": "score",
+                "instructions": "How severe is the reported issue?",
+                "criteria": [
+                    "Cosmetic; no impact to functionality",
+                    "Broken or degraded feature, but workaround exists",
+                    "Blocking issue; no workaround exists",
+                ],
+            }
+        },
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/v1/scaledown", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    state: {
+      text: "The export button crashes the settings page in Safari. It works in Chrome, but a few of our customers only use Safari.",
+    },
+    questions: {
+      bug_severity: {
+        type: "score",
+        instructions: "How severe is the reported issue?",
+        criteria: [
+          "Cosmetic; no impact to functionality",
+          "Broken or degraded feature, but workaround exists",
+          "Blocking issue; no workaround exists",
+        ],
+      },
+    },
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "model": "classify-1",
+  "answers": {
+    "bug_severity": {
+      "type": "score",
+      "score": 1.43,
+      "confidence": 0.57,
+      "legend": {
+        "0": "Cosmetic; no impact to functionality",
+        "1": "Broken or degraded feature, but workaround exists",
+        "2": "Blocking issue; no workaround exists"
+      },
+      "probabilities": { "0": 0.0, "1": 0.57, "2": 0.43 }
+    }
+  },
+  "usage": { "input_tokens": 68, "output_tokens": 1, "cost": 0.0000029 }
+}
+```
+
+`score: 1.43` (0×0.0 + 1×0.57 + 2×0.43) says the model leans toward "blocking issue" (level 2) but isn't fully decided between that and "broken or degraded" (level 1).
+
+---
+
+### Mixing all three question types
+
+`choice`, `noul`, and `score` questions can all appear in the same request. Every question is answered concurrently against the same `state`, and `usage` sums across all of them.
 
 <CodeGroup>
 
@@ -368,9 +498,14 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
         "type": "choice",
         "criteria": { "positive": "Overall positive tone.", "negative": "Overall negative tone." }
       },
+      "is_actionable": {
+        "type": "noul",
+        "instructions": "Does this feedback suggest a specific, actionable improvement?"
+      },
       "quality_score": {
         "type": "score",
-        "instructions": "Rate overall quality from 1 to 5."
+        "instructions": "Rate overall product quality.",
+        "criteria": ["poor", "average", "excellent"]
       }
     }
   }'
@@ -378,7 +513,7 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
 
 </CodeGroup>
 
-**Response:** `sentiment` is answered normally; `quality_score` comes back as `unsupported` and costs nothing.
+**Response:**
 
 ```json
 {
@@ -390,53 +525,24 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
       "probabilities": { "positive": 0.81, "negative": 0.19 },
       "confidence": 0.81
     },
+    "is_actionable": { "type": "noul", "noul": 0.72 },
     "quality_score": {
-      "type": "unsupported",
-      "reason": "'score' questions are not supported by this API"
+      "type": "score",
+      "score": 1.65,
+      "confidence": 0.51,
+      "legend": { "0": "poor", "1": "average", "2": "excellent" },
+      "probabilities": { "0": 0.03, "1": 0.46, "2": 0.51 }
     }
   },
-  "usage": { "input_tokens": 41, "output_tokens": 1, "cost": 0.0000017 }
-}
-```
-
----
-
-### An all-`score` request
-
-When **every** question in the request is `score`, nothing can be answered, so the request fails with `422` instead of returning `200` with everything marked unsupported.
-
-<CodeGroup>
-
-```bash cURL
-curl -X POST https://api.scaledown.xyz/v1/scaledown \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <your-api-key>" \
-  -d '{
-    "state": { "text": "Great product, but the onboarding was confusing." },
-    "questions": {
-      "quality_score": {
-        "type": "score",
-        "instructions": "Rate overall quality from 1 to 5."
-      }
-    }
-  }'
-```
-
-</CodeGroup>
-
-**Response:** `422 Unprocessable Entity`
-
-```json
-{
-  "detail": "'score' questions are not supported by this API, and no other question type was provided to answer."
+  "usage": { "input_tokens": 103, "output_tokens": 3, "cost": 0.0000044 }
 }
 ```
 
 ## Notes
 
 - `"classify-1"` is the only supported `model`. Omit it (defaults to `"classify-1"`) or pass it explicitly - any other value is rejected with `422`.
-- Every `choice`/`noul` question in a request is one separate calibrated model call, run concurrently. `usage` is the sum across all of them - a request with a `choice` and two `noul` questions makes 3 calls and bills for all 3.
-- A request made entirely of `score` questions returns `422`, not `200` - see [`score` behavior](#score-behavior).
+- Every question in a request - `choice`, `noul`, or `score` - is one separate calibrated model call, run concurrently. `usage` is the sum across all of them - a request with a `choice`, a `noul`, and a `score` question makes 3 calls and bills for all 3.
+- `score`'s `criteria` is an **ordered array** (2-10 levels), unlike `choice`'s unordered `{key: description}` map - the array position is the level index.
 - No `reasoning` field exists on this endpoint - it never generates a free-form explanation, unlike `/classify` with `reasoning: true`.
 - No batching - each request evaluates one `state`. To classify many items, use [`/classify`](/api-reference/classify)'s `chunks` array instead.
 - See [Differences from Jev](/api-reference/decisions-overview#differences-from-jev) for the full compatibility matrix.

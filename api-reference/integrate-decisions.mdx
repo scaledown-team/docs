@@ -31,15 +31,14 @@ API details:
         "<question_name>": {
           "type": "choice",                            // "choice" | "noul" | "score"
           "instructions": "<optional guidance>",
-          "criteria": { "<option_key>": "<option description>", ... }  // required for "choice" only
+          "criteria": { "<option_key>": "<option description>", ... }  // "choice": map, required
+          // OR for "score": "criteria": ["<lowest level>", ..., "<highest level>"]  // ordered
+          // array, 2-10 items, required. "noul" ignores criteria.
         }
       }
     }
   This mirrors TypeSafe's Jev Decisions API (POST /api/alpha/decisions on OpenRouter) request
-  shape. Sending a "model" value other than "classify-1" returns 422. "score" questions are
-  accepted but never actually evaluated: if the request has at least one choice/noul question
-  too, the score question(s) come back as "unsupported" (see below) and everything else is
-  still answered; if EVERY question is "score", the whole request returns 422 instead.
+  shape. Sending a "model" value other than "classify-1" returns 422.
 - Success response (JSON):
     {
       "model": "classify-1",
@@ -50,16 +49,20 @@ API details:
           "probabilities": { "billing": 0.93, "technical": 0.07 }, "confidence": 0.93
           // OR "noul" type:
           // "type": "noul", "noul": 0.79
-          // OR "score" type (always this, never a real score):
-          // "type": "unsupported", "reason": "'score' questions are not supported by this API"
+          // OR "score" type: score is the probability-weighted expected value across
+          // level indices (e.g. 0*0.0 + 1*0.57 + 2*0.43 = 1.43), confidence is the
+          // top level's own probability, legend echoes criteria keyed by index
+          // "type": "score", "score": 1.43, "confidence": 0.57,
+          // "legend": { "0": "...", "1": "...", "2": "..." },
+          // "probabilities": { "0": 0.0, "1": 0.57, "2": 0.43 }
         }
       },
       "usage": { "input_tokens": 62, "output_tokens": 1, "cost": 0.0000026 }
     }
 - Error responses: 422 (malformed body, empty questions map, empty criteria on a choice
-  question, neither state.text nor state.document provided, every question is type "score",
-  or "model" is anything other than "classify-1"), 402 (insufficient credits),
-  502 (model service error), 504 (timeout)
+  question, a score question's criteria outside the 2-10 item range, neither state.text
+  nor state.document provided, or "model" is anything other than "classify-1"),
+  402 (insufficient credits), 502 (model service error), 504 (timeout)
 
 Requirements:
 - The state parameter is a dict passed through as the request's "state" field.
@@ -83,25 +86,29 @@ API details:
   variable if not passed explicitly.
 - Request body: { "model"?: str, "state": { "text"?: str, "document"?: str,
   "document_mime_type"?: str }, "questions": { name: { "type": "choice"|"noul"|"score",
-  "instructions"?: str, "criteria"?: { key: str } } } }. "criteria" is required for "choice"
-  questions and ignored otherwise. Either state.text or state.document is required. "model"
-  defaults to "classify-1" and is the ONLY accepted value - any other value is a 422.
-- Response: { "model": str, "answers": { name: ChoiceAnswer | NoulAnswer | UnsupportedAnswer },
+  "instructions"?: str, "criteria"?: dict[str, str] | list[str] } } }. "criteria" is a
+  dict[str, str] (option key -> description) for "choice", an ordered list[str] of 2-10
+  levels (lowest to highest) for "score", and ignored for "noul". Either state.text or
+  state.document is required. "model" defaults to "classify-1" and is the ONLY accepted
+  value - any other value is a 422.
+- Response: { "model": str, "answers": { name: ChoiceAnswer | NoulAnswer | ScoreAnswer },
   "usage": { "input_tokens": int, "output_tokens": int, "cost": float } }
   - ChoiceAnswer: { "type": "choice", "choice": str, "probabilities": dict[str, float],
     "confidence": float }
   - NoulAnswer: { "type": "noul", "noul": float }  # probability 0-1
-  - UnsupportedAnswer: { "type": "unsupported", "reason": str }  # returned for a "score"
-    question ONLY when the request also has a choice/noul question - there is no
-    ordered-scale scoring in this API today. If EVERY question in the request is "score",
-    the whole request fails with 422 instead of returning any UnsupportedAnswer.
-- Errors: 422 malformed/validation (including an unsupported "model" value, or a request made
-  entirely of "score" questions), 402 insufficient credits, 502 upstream model error,
-  504 timeout. Non-2xx responses include a JSON body with a "detail" field.
+  - ScoreAnswer: { "type": "score", "score": float, "confidence": float,
+    "legend": dict[str, str], "probabilities": dict[str, float] }  # score is the
+    probability-weighted expected value across level indices (e.g.
+    0*p0 + 1*p1 + 2*p2); legend maps level index (as a string) to its criteria
+    description; probabilities maps level index to its probability, summing to 1.0
+- Errors: 422 malformed/validation (including an unsupported "model" value, or a score
+  question's criteria outside the 2-10 item range), 402 insufficient credits,
+  502 upstream model error, 504 timeout. Non-2xx responses include a JSON body with a
+  "detail" field.
 
 Requirements:
 - Use dataclasses (or Pydantic if available) to model the request questions (Choice, Noul,
-  Score variants) and the typed answers (ChoiceAnswer, NoulAnswer, UnsupportedAnswer) so
+  Score variants) and the typed answers (ChoiceAnswer, NoulAnswer, ScoreAnswer) so
   callers get type-safe access rather than raw dicts, with a discriminator on "type".
 - Implement retry with exponential backoff (starting at 1s, capped at 30s, with jitter) on
   429 and 5xx responses. Do not retry on 4xx other than 429.
@@ -111,7 +118,7 @@ Requirements:
 - Include a synchronous class `DecisionsClient` with a method
   `ask(state: dict, questions: dict, model: str | None = None) -> DecisionsResponse`.
 - Include type hints throughout and a minimal usage example in a `if __name__ == "__main__":`
-  block showing a mixed choice + noul request.
+  block showing a mixed choice + noul + score request.
 ```
 
 ## Porting from Jev
@@ -122,8 +129,7 @@ If you have existing code calling `POST https://openrouter.ai/api/alpha/decision
 |---|---|---|
 | URL | `https://openrouter.ai/api/alpha/decisions` | `https://api.scaledown.xyz/v1/scaledown` |
 | Auth header | `Authorization: Bearer <key>` | `x-api-key: <key>` |
-| `choice` / `noul` questions | ✅ | ✅ unchanged |
-| `score` questions | ✅ real answer | ❌ `"unsupported"` in a mixed request; `422` if the whole request is `score` - see [Unsupported: score](/api-reference/decisions-overview#unsupported-score) |
+| `choice` / `noul` / `score` questions | ✅ | ✅ unchanged |
 | `model` selection | Multiple models | Only `"classify-1"` - any other value is `422` |
 
 Everything else - the `state`/`questions` request shape and the `answers`/`usage` response shape - is unchanged. See [Overview](/api-reference/decisions-overview) for the full compatibility notes.
