@@ -134,9 +134,12 @@ Returns an OpenAI-compatible Batch object. A newly created batch starts in `"val
   "error_file_id": null,
   "created_at": 1782819284,
   "request_counts": { "total": 3, "completed": 0, "failed": 0 },
-  "metadata": null
+  "metadata": null,
+  "usage": { "prompt_tokens": 1842, "estimated": true }
 }
 ```
+
+`usage.prompt_tokens` is an estimate of the total input tokens across all requests in the batch, computed at submit time with a general-purpose tokenizer (`"estimated": true`). It lets you preview cost before the batch runs; it can differ slightly from the exact token counts reported when the batch completes.
 
 ---
 
@@ -353,7 +356,8 @@ console.log(`Batch submitted: ${batch_id}`);
   "error_file_id": null,
   "created_at": 1782819284,
   "request_counts": { "total": 3, "completed": 0, "failed": 0 },
-  "metadata": null
+  "metadata": null,
+  "usage": { "prompt_tokens": 1842, "estimated": true }
 }
 ```
 
