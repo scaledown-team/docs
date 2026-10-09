@@ -81,7 +81,7 @@ API details:
 - Endpoint: POST https://api.scaledown.xyz/v1/scaledown
 - Auth: HTTP header `x-api-key: <your key>`, read from the DECISIONS_API_KEY environment
   variable if not passed explicitly.
-- Request body: { "model"?: str, "state": { "text"?: str, "document"?: str,
+- Request body: { "model"?: str, "state": str | { "text"?: str, "document"?: str,
   "document_mime_type"?: str }, "questions": { name: { "type": "choice"|"noul"|"score",
   "instructions"?: str, "criteria"?: { key: str } } } }. "criteria" is required for "choice"
   questions and ignored otherwise. Either state.text or state.document is required. "model"

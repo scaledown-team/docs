@@ -281,22 +281,28 @@
                     "description": "Optional. \"classify-1\" is the only supported value and also the default when omitted. Any other value returns 422."
                   },
                   "state": {
-                    "type": "object",
-                    "description": "The item being decided on. Provide text, document, or both.",
-                    "properties": {
-                      "text": {
-                        "type": "string",
-                        "description": "The text to evaluate every question against."
-                      },
-                      "document": {
-                        "type": "string",
-                        "description": "A base64-encoded file to evaluate (image or PDF). Non-standard extension, not part of the Jev API."
-                      },
-                      "document_mime_type": {
-                        "type": "string",
-                        "description": "MIME type of document. Required when document is provided."
+                    "description": "The item being decided on. A plain string is shorthand for {\"text\": \"...\"}.",
+                    "oneOf": [
+                      { "type": "string" },
+                      {
+                        "type": "object",
+                        "description": "The item being decided on. Provide text, document, or both.",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "description": "The text to evaluate every question against."
+                          },
+                          "document": {
+                            "type": "string",
+                            "description": "A base64-encoded file to evaluate (image or PDF). Non-standard extension, not part of the Jev API."
+                          },
+                          "document_mime_type": {
+                            "type": "string",
+                            "description": "MIME type of document. Required when document is provided."
+                          }
+                        }
                       }
-                    }
+                    ]
                   },
                   "questions": {
                     "type": "object",

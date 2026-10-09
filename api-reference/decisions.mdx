@@ -14,8 +14,8 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
   Optional. The only supported value is `"classify-1"`, which is also the default when omitted. Any other value is rejected with `422`.
 </ParamField>
 
-<ParamField body="state" type="object" required>
-  The item being decided on.
+<ParamField body="state" type="object | string" required>
+  The item being decided on. Pass a plain string as shorthand for `{ "text": "..." }`, matching TypeSafe's API, or an object to use the fields below.
 
   <Expandable title="State fields">
     <ParamField body="text" type="string">
@@ -161,7 +161,7 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
   -H "x-api-key: <your-api-key>" \
   -d '{
     "model": "classify-1",
-    "state": { "text": "I was charged twice for my subscription this month." },
+    "state": "I was charged twice for my subscription this month.",
     "questions": {
       "category": {
         "type": "choice",

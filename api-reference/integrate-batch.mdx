@@ -48,7 +48,8 @@ Submit batch — POST https://api.scaledown.xyz/v1/batches
     }
 
 - Success response (OpenAI-shaped Batch object, JSON):
-    { "id": "<id>", "object": "batch", "status": "validating", "request_counts": { "total": <n>, "completed": 0, "failed": 0 } }
+    { "id": "<id>", "object": "batch", "status": "validating", "request_counts": { "total": <n>, "completed": 0, "failed": 0 },
+      "usage": { "prompt_tokens": <estimated input tokens>, "estimated": true } }
 - A single batch may contain at most 50 requests (else 400).
 
 Poll status — GET https://api.scaledown.xyz/v1/batches/{id}
