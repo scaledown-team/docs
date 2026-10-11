@@ -65,14 +65,26 @@
             "group": "Benchmarks",
             "icon": "chart-line",
             "pages": [
-              "benchmarks/overview"
+              "benchmarks/overview",
+              "benchmarks/methodology",
+              "benchmarks/providers",
+              "benchmarks/openai"
             ]
           },
           {
             "group": "Cookbooks",
             "icon": "book",
             "pages": [
-              "cookbooks/overview"
+              "cookbooks/overview",
+              {
+                "group": "Browse by data type",
+                "pages": [
+                  "cookbooks/voice",
+                  "cookbooks/messages",
+                  "cookbooks/documents",
+                  "cookbooks/web"
+                ]
+              }
             ]
           },
           {
@@ -131,16 +143,16 @@
           {
             "group": "Cookbooks",
             "pages": [
-              "cookbooks/overview"
-            ]
-          },
-          {
-            "group": "By data type",
-            "pages": [
-              "cookbooks/voice",
-              "cookbooks/messages",
-              "cookbooks/documents",
-              "cookbooks/web"
+              "cookbooks/overview",
+              {
+                "group": "Browse by data type",
+                "pages": [
+                  "cookbooks/voice",
+                  "cookbooks/messages",
+                  "cookbooks/documents",
+                  "cookbooks/web"
+                ]
+              }
             ]
           }
         ]
