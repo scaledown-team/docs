@@ -155,7 +155,7 @@
       },
       {
         "tab": "DietCode",
-        "icon": "github",
+        "icon": "terminal",
         "groups": [
           {
             "group": "DietCode",
@@ -170,7 +170,7 @@
       },
       {
         "tab": "ScaleDown Agent",
-        "icon": "github",
+        "icon": "robot",
         "groups": [
           {
             "group": "ScaleDown Agent",
