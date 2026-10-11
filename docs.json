@@ -65,21 +65,14 @@
             "group": "Benchmarks",
             "icon": "chart-line",
             "pages": [
-              "benchmarks/overview",
-              "benchmarks/methodology",
-              "benchmarks/providers",
-              "benchmarks/openai"
+              "benchmarks/overview"
             ]
           },
           {
             "group": "Cookbooks",
             "icon": "book",
             "pages": [
-              "cookbooks/overview",
-              "cookbooks/voice",
-              "cookbooks/messages",
-              "cookbooks/documents",
-              "cookbooks/web"
+              "cookbooks/overview"
             ]
           },
           {
@@ -87,19 +80,15 @@
             "icon": "terminal",
             "pages": [
               "dietcode/overview",
-              "dietcode/install",
-              "dietcode/proxy-mode",
-              "dietcode/clients"
+              "dietcode/install"
             ]
           },
           {
-            "group": "SLM Agent",
+            "group": "ScaleDown Agent",
             "icon": "robot",
             "pages": [
               "slm-agent/overview",
-              "slm-agent/install",
-              "slm-agent/evaluate",
-              "slm-agent/optimize"
+              "slm-agent/install"
             ]
           }
         ]
@@ -172,11 +161,11 @@
         ]
       },
       {
-        "tab": "SLM Agent",
+        "tab": "ScaleDown Agent",
         "icon": "github",
         "groups": [
           {
-            "group": "SLM Agent",
+            "group": "ScaleDown Agent",
             "pages": [
               "slm-agent/overview",
               "slm-agent/install",
