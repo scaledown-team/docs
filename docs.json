@@ -30,16 +30,6 @@
             ]
           },
           {
-            "group": "API Reference",
-            "icon": "code",
-            "pages": [
-              "api-reference/compress",
-              "api-reference/summarize",
-              "api-reference/extract",
-              "api-reference/classify"
-            ]
-          },
-          {
             "group": "Compress",
             "icon": "compress",
             "pages": [
@@ -109,6 +99,16 @@
             "pages": [
               "slm-agent/overview",
               "slm-agent/install"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "icon": "code",
+            "pages": [
+              "api-reference/compress",
+              "api-reference/summarize",
+              "api-reference/extract",
+              "api-reference/classify"
             ]
           }
         ]
