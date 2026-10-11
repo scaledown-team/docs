@@ -66,9 +66,7 @@
             "icon": "chart-line",
             "pages": [
               "benchmarks/overview",
-              "benchmarks/methodology",
-              "benchmarks/providers",
-              "benchmarks/openai"
+              "benchmarks/providers"
             ]
           },
           {
@@ -129,9 +127,7 @@
             "group": "Benchmarks",
             "pages": [
               "benchmarks/overview",
-              "benchmarks/methodology",
-              "benchmarks/providers",
-              "benchmarks/openai"
+              "benchmarks/providers"
             ]
           }
         ]
