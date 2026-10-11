@@ -60,6 +60,47 @@
               "api-reference/classify-overview",
               "api-reference/integrate-classify"
             ]
+          },
+          {
+            "group": "Benchmarks",
+            "icon": "chart-line",
+            "pages": [
+              "benchmarks/overview",
+              "benchmarks/methodology",
+              "benchmarks/providers",
+              "benchmarks/openai"
+            ]
+          },
+          {
+            "group": "Cookbooks",
+            "icon": "book",
+            "pages": [
+              "cookbooks/overview",
+              "cookbooks/voice",
+              "cookbooks/messages",
+              "cookbooks/documents",
+              "cookbooks/web"
+            ]
+          },
+          {
+            "group": "DietCode",
+            "icon": "terminal",
+            "pages": [
+              "dietcode/overview",
+              "dietcode/install",
+              "dietcode/proxy-mode",
+              "dietcode/clients"
+            ]
+          },
+          {
+            "group": "SLM Agent",
+            "icon": "robot",
+            "pages": [
+              "slm-agent/overview",
+              "slm-agent/install",
+              "slm-agent/evaluate",
+              "slm-agent/optimize"
+            ]
           }
         ]
       },
