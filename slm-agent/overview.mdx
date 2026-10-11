@@ -1,7 +1,6 @@
 ---
-title: "SLM Agent"
+title: "Overview"
 description: "Scan your codebase for LLM calls and migrate them to ScaleDown models, then tune the prompts against your own data."
-icon: "github"
 ---
 
 SLM Agent is an MCP server and Claude Code plugin that finds AI API calls in your project and shows where ScaleDown models can replace or shrink them. It analyzes code locally; no source code is sent to ScaleDown.
@@ -23,90 +22,14 @@ SLM Agent is an MCP server and Claude Code plugin that finds AI API calls in you
    | `sd_summarize` | Replace LLM summarization calls | ~90% cheaper |
 
 3. **Migrates.** Applies the changes to your code, with your approval.
-4. **Optimizes.** Tunes the prompt you pass to a ScaleDown model on your own data, and benchmarks it against the frontier-model output it replaced.
-
-## Install in Claude Code
-
-```
-/plugin marketplace add scaledown-team/SLM_Agent
-/plugin install slm-agent@scaledown
-/reload-plugins
-```
-
-Then, inside any project:
-
-```
-/slm-agent:evaluate    # find and migrate AI calls to ScaleDown models
-/slm-agent:optimize    # tune a ScaleDown prompt against your own data
-```
-
-<Tabs>
-  <Tab title="Cursor">
-    Add to `.cursor/mcp.json`:
-
-    ```json
-    {
-      "mcpServers": {
-        "scaledown-slm-agent": {
-          "command": "npx",
-          "args": ["-y", "@scaledown/migration-agent"]
-        }
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="VS Code">
-    Add to `.vscode/mcp.json`:
-
-    ```json
-    {
-      "servers": {
-        "scaledown-slm-agent": {
-          "type": "stdio",
-          "command": "npx",
-          "args": ["-y", "@scaledown/migration-agent"]
-        }
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="Any MCP client">
-    ```bash
-    npm install -g @scaledown/migration-agent
-    ```
-
-    Configure your client to run `scaledown-agent`.
-  </Tab>
-</Tabs>
-
-## The migration report
-
-Evaluation writes `scaledown-report.md` to your project root. It contains a summary table, a complexity breakdown, per-opportunity sections (files, line numbers, complexity, confidence, action), step-by-step splits for complex calls, and the HTTP request/response shapes for each ScaleDown endpoint.
-
-## Prompt optimization
-
-`/slm-agent:optimize` makes the ScaleDown model match or beat the frontier model it replaced, on your data:
-
-1. Collects your API key (from the environment, never written to disk) and a small set of labeled samples, or helps you create them.
-2. Runs a reproducible eval with a metric fitted to the task: Macro-F1 for classification, per-field precision and recall for extraction, ROUGE and faithfulness for summarization, ratio plus downstream correctness for compression.
-3. Iterates the prompt one scoped change at a time, re-running the current best twice per batch to separate real gains from API noise.
-
-Output lives in `scaledown-eval/`, including an `optimization-report.md` with the winning prompt and the command to reproduce it.
-
-```bash
-export SCALEDOWN_API_KEY=...
-/slm-agent:optimize
-```
-
-## MCP tools
-
-| Tool | Description |
-|---|---|
-| `get_ai_detection_patterns` | Regex patterns for all supported AI providers |
-| `get_integration_template` | Before/after code for integrating ScaleDown |
-| `generate_migration_plan` | Structured migration plan from a list of findings |
-| `save_migration_report` | Writes the plan to `scaledown-report.md` |
+4. **Optimizes.** Tunes the prompt you pass to a ScaleDown model on your own data and benchmarks it against the frontier-model output it replaced.
 
 ## Supported providers
 
 OpenAI, Anthropic and LangChain (Python and TypeScript/JS); LlamaIndex, Cohere and Google Generative AI (Python); Vercel AI SDK (TypeScript/JS).
+
+<CardGroup cols={3}>
+  <Card title="Install" icon="download" href="/slm-agent/install">Claude Code, Cursor, VS Code.</Card>
+  <Card title="Evaluate" icon="magnifying-glass" href="/slm-agent/evaluate">Migration report and MCP tools.</Card>
+  <Card title="Optimize" icon="sliders" href="/slm-agent/optimize">Tune prompts on your data.</Card>
+</CardGroup>

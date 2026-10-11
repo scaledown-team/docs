@@ -1,39 +1,33 @@
 ---
-title: "Benchmarks"
+title: "Overview"
 description: "How ScaleDown's task-specific models compare to frontier LLMs on accuracy, cost and latency."
-icon: "chart-line"
 ---
 
-ScaleDown models are small and built for one job each: **Classify**, **Extract**, **Summarize** and **Compress**. We benchmark each against leading general-purpose models on public datasets, and compare accuracy, cost and latency side by side.
+ScaleDown models are small and built for one job each: **Classify**, **Extract**, **Summarize** and **Compress**. We benchmark each against leading general-purpose models on public datasets and compare accuracy, cost and latency side by side.
 
-## What we measure
+<CardGroup cols={2}>
+  <Card title="Methodology" icon="flask" href="/benchmarks/methodology">The four tasks, their datasets and metrics.</Card>
+  <Card title="ScaleDown vs OpenAI" icon="chart-line" href="/benchmarks/openai">Accuracy and latency against GPT-5.5, Mini and Nano.</Card>
+</CardGroup>
 
-| Task | Benchmark | Metric |
-|---|---|---|
-| Classify | CLINC OOS | Accuracy |
-| Extract | CUAD | F1 |
-| Summarize | QMSum | ROUGE-L |
-| Compress | FinanceBench | F1 |
+## Each comparison reports
 
-Each comparison reports:
-
-- **Accuracy**: ScaleDown versus each model in a provider's lineup, on the benchmarks above.
-- **Cost**: price per 1K requests for every model compared.
+- **Accuracy**: ScaleDown versus every model in a provider's lineup.
+- **Cost**: price per 1K requests for each model.
 - **Latency**: response time per task.
 
-## Example: ScaleDown vs OpenAI
+## Providers benchmarked
 
-Against the OpenAI lineup (GPT-5.5, GPT-5.4 Mini, GPT-5.4 Nano), ScaleDown averages **8.72% higher accuracy** than the OpenAI average:
-
-| Task | Accuracy vs OpenAI avg |
-|---|---|
-| Classify | +5.40% |
-| Extract | +14.40% |
-| Summarize | +8.83% |
-| Compress | +6.23% |
-
-Cost and latency per task are on the full comparison page.
+<CardGroup cols={2}>
+  <Card title="OpenAI" icon="chart-line" href="/benchmarks/openai">GPT-5.5, GPT-5.4 Mini, GPT-5.4 Nano. 8.72% higher accuracy, 2.4× faster.</Card>
+  <Card title="Anthropic" icon="chart-line" href="/benchmarks/providers#anthropic">Fable 5, Opus 4.8, Sonnet 4.6, Haiku 4.5. 8.0% higher accuracy, 3.8× faster.</Card>
+  <Card title="Gemini" icon="chart-line" href="/benchmarks/providers#gemini">3.1 Pro, 3.5 Flash, 3.1 Flash-Lite. 9.0% higher accuracy, 8.3× faster.</Card>
+  <Card title="Grok" icon="chart-line" href="/benchmarks/providers#grok">Grok 4.3, Grok 4.2. 7.93% higher accuracy, 2.2× faster.</Card>
+  <Card title="DeepSeek" icon="chart-line" href="/benchmarks/providers#deepseek">V4 Pro, V4 Flash. 19.5% higher accuracy, 4.1× faster.</Card>
+  <Card title="Qwen" icon="chart-line" href="/benchmarks/providers#qwen">Qwen3.8 Max, 27B, Qwen3.5 4B. 16.71% higher accuracy, 13.9× faster.</Card>
+  <Card title="GLiNER" icon="chart-line" href="/benchmarks/providers#gliner">GLiNER2.5-multi-v1. +10.5% accuracy; GLiNER is free and faster.</Card>
+</CardGroup>
 
 <Card title="All benchmarks" icon="arrow-up-right" href="https://scaledown.ai/benchmarks">
-  Charts, cost tables and latency for every comparison on scaledown.ai.
+  Full charts, cost tables and latency on scaledown.ai.
 </Card>

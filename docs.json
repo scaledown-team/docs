@@ -86,7 +86,10 @@
           {
             "group": "Benchmarks",
             "pages": [
-              "benchmarks/overview"
+              "benchmarks/overview",
+              "benchmarks/methodology",
+              "benchmarks/providers",
+              "benchmarks/openai"
             ]
           }
         ]
@@ -100,6 +103,15 @@
             "pages": [
               "cookbooks/overview"
             ]
+          },
+          {
+            "group": "By data type",
+            "pages": [
+              "cookbooks/voice",
+              "cookbooks/messages",
+              "cookbooks/documents",
+              "cookbooks/web"
+            ]
           }
         ]
       },
@@ -110,7 +122,10 @@
           {
             "group": "DietCode",
             "pages": [
-              "dietcode/overview"
+              "dietcode/overview",
+              "dietcode/install",
+              "dietcode/proxy-mode",
+              "dietcode/clients"
             ]
           }
         ]
@@ -122,7 +137,10 @@
           {
             "group": "SLM Agent",
             "pages": [
-              "slm-agent/overview"
+              "slm-agent/overview",
+              "slm-agent/install",
+              "slm-agent/evaluate",
+              "slm-agent/optimize"
             ]
           }
         ]

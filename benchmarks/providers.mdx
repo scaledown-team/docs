@@ -1,0 +1,130 @@
+---
+title: "Providers"
+description: "ScaleDown versus each provider's lineup on accuracy, cost and latency."
+---
+
+Every figure is ScaleDown measured against that provider's **average across its models** on the same task. Accuracy is the gain in score; cost and latency are how many times cheaper or faster ScaleDown is. Datasets and metrics are in [Methodology](/benchmarks/methodology).
+
+## OpenAI
+
+**Models compared:** GPT-5.5, GPT-5.4 Mini, GPT-5.4 Nano
+
+<CardGroup cols={3}>
+  <Card title="8.72% higher accuracy" icon="bullseye">than the OpenAI avg</Card>
+  <Card title="89× cheaper" icon="dollar-sign">than the OpenAI avg</Card>
+  <Card title="2.4× faster" icon="bolt">than the OpenAI avg</Card>
+</CardGroup>
+
+| Task | Accuracy | Cost | Latency |
+|---|---|---|---|
+| Classify | +5.40% | 1,810× cheaper | 2.6× faster |
+| Extract | +14.40% | 35× cheaper | 3.3× faster |
+| Summarize | +8.83% | 41× cheaper | 2.7× faster |
+| Compress | +6.23% | 138× cheaper | 1.8× faster |
+
+[Full ScaleDown vs OpenAI charts and cost tables](https://scaledown.ai/benchmarks/scaledown-vs-openai)
+
+## Anthropic
+
+**Models compared:** Fable 5, Opus 4.8, Sonnet 4.6, Haiku 4.5
+
+<CardGroup cols={3}>
+  <Card title="8.0% higher accuracy" icon="bullseye">than the Anthropic avg</Card>
+  <Card title="161× cheaper" icon="dollar-sign">than the Anthropic avg</Card>
+  <Card title="3.8× faster" icon="bolt">than the Anthropic avg</Card>
+</CardGroup>
+
+| Task | Accuracy | Cost | Latency |
+|---|---|---|---|
+| Classify | +2.29% | 5,250× cheaper | 3.6× faster |
+| Extract | +13.33% | 91× cheaper | 3.2× faster |
+| Summarize | +8.22% | 217× cheaper | 4.4× faster |
+
+[Full ScaleDown vs Anthropic charts and cost tables](https://scaledown.ai/benchmarks/scaledown-vs-anthropic)
+
+## Gemini
+
+**Models compared:** 3.1 Pro, 3.5 Flash, 3.1 Flash-Lite
+
+<CardGroup cols={3}>
+  <Card title="9.0% higher accuracy" icon="bullseye">than the Gemini avg</Card>
+  <Card title="29× cheaper" icon="dollar-sign">than the Gemini avg</Card>
+  <Card title="8.3× faster" icon="bolt">than the Gemini avg</Card>
+</CardGroup>
+
+| Task | Accuracy | Cost | Latency |
+|---|---|---|---|
+| Classify | +2.10% | 2,437× cheaper | 13.8× faster |
+| Extract | +10.34% | 26× cheaper | 13.4× faster |
+| Summarize | +14.70% | 28× cheaper | 2.6× faster |
+
+[Full ScaleDown vs Gemini charts and cost tables](https://scaledown.ai/benchmarks/scaledown-vs-gemini)
+
+## Grok
+
+**Models compared:** Grok 4.3, Grok 4.2
+
+<CardGroup cols={3}>
+  <Card title="7.93% higher accuracy" icon="bullseye">than the Grok avg</Card>
+  <Card title="24× cheaper" icon="dollar-sign">than the Grok avg</Card>
+  <Card title="2.2× faster" icon="bolt">than the Grok avg</Card>
+</CardGroup>
+
+| Task | Accuracy | Cost | Latency |
+|---|---|---|---|
+| Classify | +1.45% | 1,161× cheaper | 2.3× faster |
+| Extract | +12.30% | 22× cheaper | 2.3× faster |
+| Summarize | +10.05% | 25× cheaper | 2.1× faster |
+
+[Full ScaleDown vs Grok charts and cost tables](https://scaledown.ai/benchmarks/scaledown-vs-grok)
+
+## DeepSeek
+
+**Models compared:** DeepSeek V4 Pro, DeepSeek V4 Flash
+
+<CardGroup cols={3}>
+  <Card title="19.5% higher accuracy" icon="bullseye">than the DeepSeek avg</Card>
+  <Card title="9× cheaper" icon="dollar-sign">than the DeepSeek avg</Card>
+  <Card title="4.1× faster" icon="bolt">than the DeepSeek avg</Card>
+</CardGroup>
+
+| Task | Accuracy | Cost | Latency |
+|---|---|---|---|
+| Classify | +20.75% | 113× cheaper | 3.7× faster |
+| Extract | +31.03% | 9× cheaper | 3.9× faster |
+| Summarize | +6.73% | 10× cheaper | 4.4× faster |
+
+[Full ScaleDown vs DeepSeek charts and cost tables](https://scaledown.ai/benchmarks/scaledown-vs-deepseek)
+
+## Qwen
+
+**Models compared:** Qwen3.8 Max, Qwen3.8 27B, Qwen3.5 4B
+
+<CardGroup cols={3}>
+  <Card title="16.71% higher accuracy" icon="bullseye">than the Qwen avg</Card>
+  <Card title="24× cheaper" icon="dollar-sign">than the Qwen avg</Card>
+  <Card title="13.9× faster" icon="bolt">than the Qwen avg</Card>
+</CardGroup>
+
+| Task | Accuracy | Cost | Latency |
+|---|---|---|---|
+| Classify | +9.12% | 761× cheaper | 7.2× faster |
+| Extract | +31.98% | 18× cheaper | 26.1× faster |
+| Summarize | +9.04% | 28× cheaper | 9.2× faster |
+
+[Full ScaleDown vs Qwen charts and cost tables](https://scaledown.ai/benchmarks/scaledown-vs-qwen)
+
+## GLiNER
+
+**Model compared:** GLiNER2.5-multi-v1, a local open-source model for classification and extraction.
+
+GLiNER is the one comparison where ScaleDown is not the faster or cheaper option. GLiNER runs locally, so inference is free, and it is faster, while ScaleDown is more accurate.
+
+| Task | Accuracy (ScaleDown vs GLiNER) | GLiNER latency | Cost |
+|---|---|---|---|
+| Classify | +15.5 pp for ScaleDown | 22 ms | GLiNER free (local inference) |
+| Extract | +0.2 pp for ScaleDown | 480 ms | GLiNER free (local inference) |
+
+Averaged across both tasks, ScaleDown's accuracy advantage is +10.5%.
+
+[Full ScaleDown vs GLiNER charts](https://scaledown.ai/benchmarks/scaledown-vs-gliner)

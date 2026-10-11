@@ -1,0 +1,49 @@
+---
+title: "Proxy mode"
+description: "Route Claude Code through a local proxy that shrinks the context every turn."
+---
+
+Hooks can only *add* context to the window; they can never rewrite the history Claude re-sends every turn. To genuinely reduce tokens, DietCode sits in the request path.
+
+```bash
+dietcode claude   # claude, routed through a local DietCode proxy
+```
+
+This starts a small proxy on `127.0.0.1` (ephemeral port, torn down when you quit), points Claude Code at it via `ANTHROPIC_BASE_URL`, and launches `claude` normally.
+
+## What the proxy sends
+
+```
+[ system + tools ]            untouched, keeps Anthropic's prompt cache warm
+[ running ScaleDown summary ] stands in for older turns
+[ last N turns verbatim ]     the live working set
+```
+
+## Why it works
+
+<CardGroup cols={2}>
+  <Card title="Progressive" icon="layer-group">
+    Most turns make zero ScaleDown calls. One call folds the oldest turns into the summary only when summary plus recent turns passes `SCALEDOWN_PROXY_COMPACT_THRESHOLD`.
+  </Card>
+  <Card title="Replaces native compaction" icon="compress">
+    The forwarded payload stays small, so Claude's own auto-compaction effectively never fires. ScaleDown owns compaction instead.
+  </Card>
+  <Card title="Reversible" icon="rotate-left">
+    Compacted turns are stored locally. The summary tells Claude to call `sd_retrieve("<id>")` when it needs an exact detail.
+  </Card>
+  <Card title="Cache-safe" icon="shield">
+    System prompt and tools are untouched, so Anthropic's prompt cache stays warm.
+  </Card>
+</CardGroup>
+
+## Run the proxy yourself
+
+```bash
+dietcode proxy --port 8788
+export ANTHROPIC_BASE_URL=http://127.0.0.1:8788
+claude
+```
+
+<Note>
+Why not a `PreCompact` hook? It can only append to the window, so injecting a summary there costs tokens instead of saving them. The real work happens in the proxy, where DietCode controls the request payload.
+</Note>

@@ -1,0 +1,41 @@
+---
+title: "Evaluate"
+description: "Scan a project, get a migration plan, and apply it."
+---
+
+`/slm-agent:evaluate` scans your project, writes a migration plan, and applies the changes to your code with your approval.
+
+## The migration report
+
+Evaluation saves `scaledown-report.md` in your project root, following a fixed schema (version `"1"`):
+
+| Section | Content |
+|---|---|
+| **Summary table** | Files scanned, files with AI calls, total opportunities, providers detected |
+| **Complexity breakdown** | Calls at each level, trivial to highly complex |
+| **Per-opportunity sections** | Files, line numbers, complexity score, confidence and action for each of `sd_classify`, `sd_extract`, `sd_summarize`, `sd_compress` |
+| **Complex call decompositions** | For calls scoring 3+/5, which sub-tasks can move to a ScaleDown model and which still need a frontier LLM |
+| **HTTP API reference** | Request and response shapes for `/classify`, `/extract`, `/summarization/abstractive` and `/compress/raw/` |
+
+```markdown
+## Summary
+| Metric | Value |
+|---|---|
+| Files scanned | 42 |
+| Files with AI API calls | 7 |
+| Total integration opportunities | 11 |
+| Providers detected | openai, langchain |
+```
+
+## MCP tools
+
+| Tool | Description |
+|---|---|
+| `get_ai_detection_patterns` | Regex patterns for all supported AI providers |
+| `get_integration_template` | Before/after code showing how to integrate ScaleDown |
+| `generate_migration_plan` | Structured markdown plan from a list of findings |
+| `save_migration_report` | Writes the plan to `scaledown-report.md` |
+
+<Note>
+Analysis runs locally. The only network calls are your application's runtime calls to ScaleDown, using the `SCALEDOWN_API_KEY` you provide.
+</Note>

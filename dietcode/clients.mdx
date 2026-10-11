@@ -1,0 +1,20 @@
+---
+title: "Supported clients"
+description: "What DietCode does in Claude Code, Codex CLI and Cursor."
+---
+
+| Client | Hooks (auto compression, intent) | Proxy mode | Status line |
+|---|---|---|---|
+| Claude Code | Yes | Yes | Yes |
+| Codex CLI | Yes | No | No |
+| Cursor | No (no hook system) | No | No |
+
+## The `sd_retrieve` tool
+
+Compression, summarization, classification and extraction run automatically through hooks and the proxy, so their schemas never add to your tool list. The one tool exposed to the agent, in all three clients, is `sd_retrieve`, which restores the original text behind a proxy summary marker. It only has something to retrieve in a Claude Code proxy session.
+
+## Notes per client
+
+- **Claude Code**: full feature set, including the live savings display. This is an npm CLI plugin; there is no IDE extension, and the status line is Claude Code's terminal status line.
+- **Codex CLI**: the same hooks as Claude Code. Token savings happen, but nothing is displayed.
+- **Cursor**: has no hook system, so it gets no automatic optimization today. Install it there only for `sd_retrieve`.

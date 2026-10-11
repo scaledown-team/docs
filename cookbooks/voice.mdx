@@ -1,0 +1,55 @@
+---
+title: "Voice & Calls"
+description: "Calls, voice agents and meeting recordings, after transcription."
+---
+
+Calls, voice agents and meeting recordings, after transcription. Four recipes, one per ScaleDown model.
+
+## Compress
+
+<Card title="Trim the backend docs down to what the question needs, so the agent can answer a live caller fast." icon="compress" href="https://scaledown.ai/cookbooks/voice-compress">
+  Sits in front of your answering LLM. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | The caller is not left waiting while a big chunk of retrieved text gets processed. |
+| **How it goes** | Caller asks → speech transcribed → backend pulls docs → Compress trims them → LLM writes a short answer → agent says it. |
+| **Payoff** | Lower latency on the retrieval step, less token spend per answered call. |
+
+## Summarize
+
+<Card title="Turn a call or meeting transcript into a short recap with the decisions and action items." icon="align-left" href="https://scaledown.ai/cookbooks/voice-summarize">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Transcripts are long, conversational, and multi-speaker, exactly the workload Summarize is built for. |
+| **How it goes** | Call ends → transcript in → Summarize produces the recap → push to the notetaker, CRM, or follow-up draft. |
+| **Payoff** | State-of-the-art on QMSum, the meeting-summarization benchmark. |
+
+## Extract
+
+<Card title="Pull the CRM fields out of a sales call, deal size, economic buyer, next meeting, into clean fields." icon="magnifying-glass" href="https://scaledown.ai/cookbooks/voice-extract">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | A deal cannot move on a guess; Extract returns the numbers and names exactly as they were said on the call. |
+| **How it goes** | Call ends → transcript in → you tell Extract what to look for → it returns the fields → push into HubSpot. |
+| **Payoff** | Structured CRM fields straight off the transcript, no rep data entry. |
+
+## Classify
+
+<Card title="Send the caller to the right place based on what they say, instead of press 1 for billing." icon="tags" href="https://scaledown.ai/cookbooks/voice-classify">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Routing is the busiest step in the call; Classify handles a simple choice fast without paying a frontier model to overthink it. |
+| **How it goes** | Caller says what they need → speech transcribed → Classify picks the label → agent routes them into that flow. |
+| **Payoff** | Faster routing at lower cost per call. |
+

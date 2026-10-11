@@ -1,0 +1,55 @@
+---
+title: "Chats & Tickets"
+description: "Email threads, Slack channels and support tickets."
+---
+
+Email threads, Slack channels and support tickets. Four recipes, one per ScaleDown model.
+
+## Compress
+
+<Card title="Shrink a long thread down to what matters before an LLM drafts a reply or runs an action." icon="compress" href="https://scaledown.ai/cookbooks/messages-compress">
+  Sits in front of your LLM. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Long email and Slack threads carry a lot of greetings, sign-offs, and quoted history; most of it is dead weight on the next call. |
+| **How it goes** | Thread in → Compress strips the boilerplate, keeps the ask → the LLM works on the trimmed context. |
+| **Payoff** | Fewer tokens into the drafting or answering call. |
+
+## Summarize
+
+<Card title="Catch me up on this thread in one or two lines." icon="align-left" href="https://scaledown.ai/cookbooks/messages-summarize">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | People do not want to read a long thread top to bottom; they want the state of it. |
+| **How it goes** | Thread in → Summarize produces the digest → surface it in the inbox, channel, or handoff. |
+| **Payoff** | Thread digests without a frontier call each time. |
+
+## Extract
+
+<Card title="Pull the action items, dates, and owners out of a message or thread." icon="magnifying-glass" href="https://scaledown.ai/cookbooks/messages-extract">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | The asks are buried in prose; Extract turns them into fields a system can act on. |
+| **How it goes** | Message in → tell Extract what to look for → it returns tasks, dates, owners → push to the tracker. |
+| **Payoff** | Structured to-dos straight from the thread. |
+
+## Classify
+
+<Card title="Sort and route each message by topic, priority, or sentiment." icon="tags" href="https://scaledown.ai/cookbooks/messages-classify">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Triage runs on every support message; volume makes per-message frontier cost add up fast. |
+| **How it goes** | Message in → Classify assigns the label → route to the right queue, owner, or alert. |
+| **Payoff** | Cheap, fast labeling at inbox volume. |
+
