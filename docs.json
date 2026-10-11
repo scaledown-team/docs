@@ -78,6 +78,26 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Benchmarks",
+        "icon": "chart-line",
+        "href": "https://scaledown.ai/benchmarks"
+      },
+      {
+        "tab": "Cookbooks",
+        "icon": "book",
+        "href": "https://scaledown.ai/cookbooks"
+      },
+      {
+        "tab": "DietCode",
+        "icon": "github",
+        "href": "https://github.com/scaledown-team/DietCode"
+      },
+      {
+        "tab": "SLM Agent",
+        "icon": "github",
+        "href": "https://github.com/scaledown-team/SLM_Agent"
       }
     ]
   },
