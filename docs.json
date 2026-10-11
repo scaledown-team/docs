@@ -82,22 +82,50 @@
       {
         "tab": "Benchmarks",
         "icon": "chart-line",
-        "href": "https://scaledown.ai/benchmarks"
+        "groups": [
+          {
+            "group": "Benchmarks",
+            "pages": [
+              "benchmarks/overview"
+            ]
+          }
+        ]
       },
       {
         "tab": "Cookbooks",
         "icon": "book",
-        "href": "https://scaledown.ai/cookbooks"
+        "groups": [
+          {
+            "group": "Cookbooks",
+            "pages": [
+              "cookbooks/overview"
+            ]
+          }
+        ]
       },
       {
         "tab": "DietCode",
         "icon": "github",
-        "href": "https://github.com/scaledown-team/DietCode"
+        "groups": [
+          {
+            "group": "DietCode",
+            "pages": [
+              "dietcode/overview"
+            ]
+          }
+        ]
       },
       {
         "tab": "SLM Agent",
         "icon": "github",
-        "href": "https://github.com/scaledown-team/SLM_Agent"
+        "groups": [
+          {
+            "group": "SLM Agent",
+            "pages": [
+              "slm-agent/overview"
+            ]
+          }
+        ]
       }
     ]
   },

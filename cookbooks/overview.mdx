@@ -1,0 +1,41 @@
+---
+title: "Cookbooks"
+description: "Copy-paste Python recipes for using ScaleDown on voice, messages, documents and web pages."
+icon: "book"
+---
+
+Cookbooks are end-to-end recipes: real input, a ScaleDown call, and the response you get back. There are 16, one for each combination of **data type** and **model**.
+
+## Pick a recipe
+
+| Data type | Compress | Summarize | Classify | Extract |
+|---|---|---|---|---|
+| **Voice & Calls** | [Trim backend docs for a live caller](https://scaledown.ai/cookbooks/voice-compress) | [Call recap with decisions and actions](https://scaledown.ai/cookbooks/voice-summarize) | [Route callers by what they say](https://scaledown.ai/cookbooks/voice-classify) | [Pull CRM fields from a sales call](https://scaledown.ai/cookbooks/voice-extract) |
+| **Chats & Tickets** | [Shrink long threads](https://scaledown.ai/cookbooks/messages-compress) | [Catch up on a thread](https://scaledown.ai/cookbooks/messages-summarize) | [Sort by topic, priority, sentiment](https://scaledown.ai/cookbooks/messages-classify) | [Structured fields from messages](https://scaledown.ai/cookbooks/messages-extract) |
+| **Files & Docs** | [Compress documents](https://scaledown.ai/cookbooks/documents-compress) | [Summarize documents](https://scaledown.ai/cookbooks/documents-summarize) | [Classify documents](https://scaledown.ai/cookbooks/documents-classify) | [Extract from documents](https://scaledown.ai/cookbooks/documents-extract) |
+| **Web Pages** | [Compress pages](https://scaledown.ai/cookbooks/web-compress) | [Summarize pages](https://scaledown.ai/cookbooks/web-summarize) | [Classify pages](https://scaledown.ai/cookbooks/web-classify) | [Extract from pages](https://scaledown.ai/cookbooks/web-extract) |
+
+## How each model is used
+
+<CardGroup cols={2}>
+  <Card title="Compress" icon="compress">
+    Sits **in front of** your LLM. It trims the context to what the question needs, so the LLM call is cheaper and faster.
+  </Card>
+  <Card title="Summarize, Classify, Extract" icon="repeat">
+    **Replace** an LLM call. A small model does the job directly, at lower cost and latency.
+  </Card>
+</CardGroup>
+
+## Every recipe follows the same shape
+
+1. **The move**: what the model does, in one line.
+2. **Why it fits**: the constraint that makes this the right model.
+3. **How it goes**: the pipeline, step by step.
+4. **Code**: a Python snippet that prints the real response.
+5. **Payoff**: the result. Only the Conversation Recap (QMSum) and Documents Shrink (FinanceBench) recipes quote measured benchmark numbers; the rest are described qualitatively.
+
+You need a ScaleDown API key. See the [quickstart](/quickstart).
+
+<Card title="Browse all cookbooks" icon="arrow-up-right" href="https://scaledown.ai/cookbooks">
+  Filter by data type or model on scaledown.ai.
+</Card>

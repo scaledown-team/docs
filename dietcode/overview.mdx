@@ -1,0 +1,75 @@
+---
+title: "DietCode"
+description: "Cut token usage in Claude Code, Codex CLI and Cursor with automatic compression, summarization and intent routing."
+icon: "github"
+---
+
+DietCode is an npm plugin that optimizes coding-agent sessions using ScaleDown. It runs automatically through hooks (Claude Code and Codex CLI) and an optional local proxy.
+
+<Card title="scaledown-team/DietCode" icon="github" href="https://github.com/scaledown-team/DietCode">
+  Source, issues and the full README.
+</Card>
+
+## What it does
+
+On every prompt, DietCode:
+
+1. **Classifies intent** and prepends a one-line hint such as `[DietCode intent: file_read (87%)]`, so the agent picks the right tool.
+2. **Compresses large contexts** when you paste a big codebase and ask a retrieval-style question, cutting 50-70% of tokens before the prompt reaches the model.
+3. **Compresses large tool outputs.** `ls`, `grep` and `git diff/log/status` are compacted with no latency; anything still large goes through ScaleDown.
+4. **Tracks savings** live in the Claude Code status line, for example `↓ 125.4K saved · 747 reqs`.
+
+Compression only fires on prompts that are both large and retrieval-style. Conversational prompts and code you ask it to write are left alone.
+
+## Proxy mode: real per-turn savings
+
+Hooks can only add context, never shrink history. Proxy mode sits in the request path instead:
+
+```bash
+dietcode claude   # claude, routed through a local DietCode proxy
+```
+
+The proxy rewrites each outgoing request into three parts:
+
+```
+[ system + tools ]            untouched, keeps Anthropic's prompt cache warm
+[ running ScaleDown summary ] stands in for older turns
+[ last N turns verbatim ]     the live working set
+```
+
+- **Progressive.** Most turns make zero ScaleDown calls. One call folds the oldest turns into the summary only when summary plus recent turns passes `SCALEDOWN_PROXY_COMPACT_THRESHOLD`.
+- **Replaces native compaction.** The forwarded payload stays small, so Claude's own auto-compaction effectively never fires.
+- **Reversible.** Compacted turns are stored locally. The summary tells Claude to call `sd_retrieve("<id>")` if it needs an exact detail.
+
+To run the proxy yourself:
+
+```bash
+dietcode proxy --port 8788
+export ANTHROPIC_BASE_URL=http://127.0.0.1:8788
+claude
+```
+
+## Install
+
+You need Node.js 18+ and a ScaleDown API key from [scaledown.ai/dashboard](https://scaledown.ai/dashboard).
+
+```bash
+npm install -g dietcode
+dietcode setup
+```
+
+The wizard opens the browser for a key, validates it, saves it to your shell config and `~/.scaledown/config.json`, registers the MCP server, and writes the hooks and status line to `~/.claude/settings.json`. It can also set up Codex CLI and Cursor, and offers to alias `claude` to `dietcode claude`. Restart Claude Code afterwards.
+
+## Supported clients
+
+| Client | Hooks (auto compression, intent) | Proxy mode | Status line |
+|---|---|---|---|
+| Claude Code | Yes | Yes | Yes |
+| Codex CLI | Yes | No | No |
+| Cursor | No (no hook system) | No | No |
+
+In all three clients the one tool exposed to the agent is `sd_retrieve`, which restores the original text behind a summary marker.
+
+<Note>
+Cursor currently gets no automatic optimization, because it has no hook system. Install it there only for `sd_retrieve`.
+</Note>

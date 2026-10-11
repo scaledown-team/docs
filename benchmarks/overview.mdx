@@ -1,0 +1,55 @@
+---
+title: "Benchmarks"
+description: "How ScaleDown's task-specific models compare to frontier LLMs on accuracy, cost and latency."
+icon: "chart-line"
+---
+
+ScaleDown models are small and built for one job each: **Classify**, **Extract**, **Summarize** and **Compress**. We benchmark each against leading general-purpose models on public datasets, and compare accuracy, cost and latency side by side.
+
+## What we measure
+
+| Task | Benchmark | Metric |
+|---|---|---|
+| Classify | CLINC OOS | Accuracy |
+| Extract | CUAD | F1 |
+| Summarize | QMSum | ROUGE-L |
+| Compress | FinanceBench | F1 |
+
+Each comparison reports:
+
+- **Accuracy**: ScaleDown versus each model in a provider's lineup, on the benchmarks above.
+- **Cost**: price per 1K requests for every model compared.
+- **Latency**: response time per task.
+
+## Example: ScaleDown vs OpenAI
+
+Against the OpenAI lineup (GPT-5.5, GPT-5.4 Mini, GPT-5.4 Nano), ScaleDown averages **8.72% higher accuracy** than the OpenAI average:
+
+| Task | Accuracy vs OpenAI avg |
+|---|---|
+| Classify | +5.40% |
+| Extract | +14.40% |
+| Summarize | +8.83% |
+| Compress | +6.23% |
+
+Cost and latency per task are on the full comparison page.
+
+## Providers benchmarked
+
+<CardGroup cols={2}>
+  <Card title="OpenAI" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-openai">GPT-5.5, GPT-5.4 Mini, GPT-5.4 Nano</Card>
+  <Card title="Anthropic" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-anthropic">Fable 5, Opus 4.8, Sonnet 4.6, Haiku 4.5</Card>
+  <Card title="Gemini" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-gemini">3.1 Pro, 3.5 Flash, 3.1 Flash-Lite</Card>
+  <Card title="Grok" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-grok">Grok 4.3, Grok 4.2</Card>
+  <Card title="DeepSeek" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-deepseek">V4 Pro, V4 Flash</Card>
+  <Card title="Qwen" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-qwen">Qwen3.8 Max, Qwen3.8 27B, Qwen3.5 4B</Card>
+  <Card title="Kimi" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-kimi">Kimi K3, K2.6, K2</Card>
+  <Card title="Mistral" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-mistral">Large, Medium, Small, Codestral</Card>
+  <Card title="Llama" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-llama">Llama 4 Maverick, Scout, Llama 3.3 70B</Card>
+  <Card title="GLiNER" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-gliner">GLiNER2.5-multi-v1</Card>
+  <Card title="Jev" icon="chart-line" href="https://scaledown.ai/benchmarks/scaledown-vs-jev">Jev 1.13</Card>
+</CardGroup>
+
+<Card title="All benchmarks" icon="arrow-up-right" href="https://scaledown.ai/benchmarks">
+  Charts, cost tables and latency for every comparison on scaledown.ai.
+</Card>
