@@ -51,7 +51,7 @@
                     "properties": {
                       "rate": {
                         "type": "string",
-                        "description": "Compression aggressiveness. Use 'auto' or a number between 0 and 1 (e.g. '0.5')."
+                        "description": "Compression aggressiveness. Use 'auto' or a number between 0 and 1 for the fraction of tokens to remove (e.g. 0.8 removes about 80% and keeps about 20%)."
                       }
                     }
                   }
@@ -438,8 +438,9 @@
                   },
                   "max_tokens": {
                     "type": "number",
-                    "default": 20048,
-                    "description": "Maximum number of tokens in the generated summary."
+                    "default": 200,
+                    "maximum": 200,
+                    "description": "Maximum number of tokens in the generated summary. Defaults to 200 and cannot be raised; contact neal@scaledown.ai for a higher limit."
                   }
                 }
               }

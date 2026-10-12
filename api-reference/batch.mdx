@@ -83,8 +83,8 @@ Each line must be a JSON object with these top-level fields:
   Optional additional rules appended to the base summarization prompt (e.g. `"Use bullet points."`, `"Focus on financial figures only."`).
 </ParamField>
 
-<ParamField body="body.max_tokens" type="number" default={20048}>
-  Maximum tokens in the generated summary.
+<ParamField body="body.max_tokens" type="number" default={200}>
+  Maximum tokens in the generated summary. Defaults to and is capped at `200`. If a summary is cut off, its result has `finish_reason: "length"` and a `notice`. For a higher limit, email neal@scaledown.ai.
 </ParamField>
 
 ---

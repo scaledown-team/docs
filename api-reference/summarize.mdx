@@ -32,8 +32,8 @@ The `/summarization/abstractive` endpoint condenses text in the model's own word
   - `"Limit to 3 sentences."`
 </ParamField>
 
-<ParamField body="max_tokens" type="number" default={2048}>
-  Maximum number of tokens in the generated summary.
+<ParamField body="max_tokens" type="number" default={200}>
+  Maximum number of tokens in the generated summary. Defaults to `200`, which is also the maximum: larger values are capped at 200, and the model is instructed to finish within the limit. If a summary still hits the limit it is cut off and the response sets `finish_reason` to `"length"` with a `notice`. For a higher output limit, email [neal@scaledown.ai](mailto:neal@scaledown.ai).
 </ParamField>
 
 ## Response
@@ -52,6 +52,18 @@ The `/summarization/abstractive` endpoint condenses text in the model's own word
 
 <ResponseField name="latency_ms" type="number">
   End-to-end request latency in milliseconds.
+</ResponseField>
+
+<ResponseField name="input_tokens" type="number">
+  Input tokens billed for the request. Output length is capped at 200 tokens and does not add to the input-token charge.
+</ResponseField>
+
+<ResponseField name="finish_reason" type="string">
+  `"stop"` when the summary finished on its own, or `"length"` when it was cut off at the output limit.
+</ResponseField>
+
+<ResponseField name="notice" type="string | null">
+  Present only when `finish_reason` is `"length"`. Explains that the output limit was reached and that a higher limit is available by contacting neal@scaledown.ai.
 </ResponseField>
 
 <ResponseField name="ocr_text" type="string | null">
@@ -128,7 +140,10 @@ const data = await response.json();
   "summary": "The company reported strong Q3 results, approved a share buyback program, and announced plans for Southeast Asian expansion.",
   "input_chars": 8340,
   "output_chars": 142,
-  "latency_ms": 3241
+  "latency_ms": 3241,
+  "input_tokens": 2105,
+  "finish_reason": "stop",
+  "notice": null
 }
 ```
 
@@ -145,7 +160,7 @@ curl -X POST https://api.scaledown.xyz/summarization/abstractive \
   -d '{
     "text": "Your long text here...",
     "instructions": "Use bullet points. Focus on dates and key decisions only.",
-    "max_tokens": 500
+    "max_tokens": 150
   }'
 ```
 
@@ -158,7 +173,7 @@ response = requests.post(
     json={
         "text": "Your long text here...",
         "instructions": "Use bullet points. Focus on dates and key decisions only.",
-        "max_tokens": 500,
+        "max_tokens": 150,
     },
 )
 print(response.json())
@@ -176,7 +191,7 @@ const response = await fetch(
     body: JSON.stringify({
       text: "Your long text here...",
       instructions: "Use bullet points. Focus on dates and key decisions only.",
-      max_tokens: 500,
+      max_tokens: 150,
     }),
   }
 );
@@ -192,7 +207,10 @@ const data = await response.json();
   "summary": "- The company reported Q3 revenue of $4.2B, up 12% year-over-year.\n- The board approved a $500M share buyback program on October 14.\n- CEO announced plans to expand into Southeast Asia by mid-2027.",
   "input_chars": 8340,
   "output_chars": 198,
-  "latency_ms": 3241
+  "latency_ms": 3241,
+  "input_tokens": 2105,
+  "finish_reason": "stop",
+  "notice": null
 }
 ```
 
