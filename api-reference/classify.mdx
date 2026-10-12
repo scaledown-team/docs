@@ -11,7 +11,11 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 ## Request
 
 <ParamField body="text" type="string">
-  The text to classify. Either `text` or `document` must be provided. If both are given, the OCR text is appended after `text`.
+  The text to classify. Provide exactly one of `text`, `chunks`, or `document`. If both `text` and `document` are given, the OCR text is appended after `text`.
+</ParamField>
+
+<ParamField body="chunks" type="array">
+  A batch of inputs to classify against the **same** `labels` and `system_prompt`. Each item is `{ "id": string, "text": string }`; the `id` is echoed back on the matching result so you can correlate them. Use this instead of sending one request per chunk: the shared profile (labels + system prompt) is billed **once** for the whole request instead of once per chunk. Cannot be combined with `text` or `document`. Capped at 50 chunks per request.
 </ParamField>
 
 <ParamField body="document" type="string">
@@ -34,6 +38,14 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
       A yes/no question the model uses to score the label. Phrased so that a "yes" answer means the label applies. See [Writing good rubrics](#writing-good-rubrics) for guidance.
     </ParamField>
   </Expandable>
+</ParamField>
+
+<ParamField body="multi_label" type="boolean" default="false">
+  When `false` (default), the labels are treated as **mutually exclusive** options: scores are a softmax distribution that sums to `1.0` and exactly one `top_label` is returned. When `true`, each label is scored **independently** (its own yes/no decision), so several labels can apply to the same input at once. Scores are independent probabilities that do **not** sum to 1, and every label whose score meets `threshold` is returned in `matched_labels`. Use this to attach multiple tags to a single input. Capped at 16 labels in multi-label mode.
+</ParamField>
+
+<ParamField body="threshold" type="number" default="0.5">
+  Only used when `multi_label` is `true`. A label is included in `matched_labels` when its independent score is greater than or equal to this value. All scores are still returned, so you can also re-threshold client-side.
 </ParamField>
 
 ## Response
@@ -64,17 +76,47 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
   </Expandable>
 </ResponseField>
 
+<ResponseField name="results" type="array">
+  Per-input results. Always present: for a single `text`/`document` request it has one element (with `id` `"0"`) and the top-level `top_label`/`scores`/`labels` mirror it. For a `chunks` request there is one element per chunk, each carrying its own calibrated scores.
+
+  <Expandable title="Result fields">
+    <ResponseField name="id" type="string">
+      The chunk `id` from the request (`"0"` for single-input requests).
+    </ResponseField>
+
+    <ResponseField name="top_label" type="string">
+      Highest-scoring label for this input. In multi-label mode this is the single highest-scoring label, or `""` if none met the threshold.
+    </ResponseField>
+
+    <ResponseField name="matched_labels" type="array | null">
+      Multi-label mode only: the labels whose independent score met `threshold`. `null` in single-label mode.
+    </ResponseField>
+
+    <ResponseField name="scores" type="object">
+      Map of label name → score for this input. Sums to `1.0` in single-label mode; independent (does not sum to 1) in multi-label mode.
+    </ResponseField>
+
+    <ResponseField name="labels" type="array">
+      Full label list with name, score, and rubric for this input.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="chunk_count" type="integer">
+  Number of inputs classified (`1` for single-input requests).
+</ResponseField>
+
 <ResponseField name="ocr_text" type="string | null">
   The raw text extracted from the document via OCR. `null` if no `document` was provided.
 </ResponseField>
 
-**Score semantics:** Scores are relative probabilities, not absolute confidence values. A score of `0.85` means the model assigned 85% of its probability mass to that label relative to the others. If you need a confidence threshold (e.g. only act if the top score exceeds `0.7`), apply it yourself on the `scores` field.
+**Score semantics:** In single-label mode, scores are relative probabilities that sum to 1 — a score of `0.85` means 85% of the probability mass relative to the other labels. In multi-label mode, each label's score is an independent probability that it applies, so scores do not sum to 1 and should be compared against `threshold` individually.
 
 ## Error responses
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, empty `labels` array, neither `text` nor `document` provided, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, empty `labels` array, none of `text`/`chunks`/`document` provided, more than 50 chunks, more than 16 labels in multi-label mode, or OCR failed. |
 | `502 Bad Gateway` | Model service unavailable or returned an error. |
 
 ## Authentication
@@ -398,6 +440,208 @@ const data = await response.json();
 
 ---
 
+### Multi-label: attaching several tags to one input
+
+Set `multi_label: true` to score each label independently, so more than one can apply to the same input. Every label whose score meets `threshold` is returned in `matched_labels`. This avoids sending the same input once per tag.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/classify \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "text": "The invoice is overdue and the customer is threatening to cancel their contract.",
+    "multi_label": true,
+    "threshold": 0.5,
+    "labels": [
+      { "name": "billing",     "rubric": "Does this text describe a billing, invoice, or payment matter?" },
+      { "name": "churn_risk",  "rubric": "Does this text signal the customer may cancel or leave?" },
+      { "name": "legal",       "rubric": "Does this text describe a legal or contractual dispute?" }
+    ]
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/classify",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "text": "The invoice is overdue and the customer is threatening to cancel their contract.",
+        "multi_label": True,
+        "threshold": 0.5,
+        "labels": [
+            {"name": "billing",    "rubric": "Does this text describe a billing, invoice, or payment matter?"},
+            {"name": "churn_risk", "rubric": "Does this text signal the customer may cancel or leave?"},
+            {"name": "legal",      "rubric": "Does this text describe a legal or contractual dispute?"},
+        ],
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/classify", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    text: "The invoice is overdue and the customer is threatening to cancel their contract.",
+    multi_label: true,
+    threshold: 0.5,
+    labels: [
+      { name: "billing",    rubric: "Does this text describe a billing, invoice, or payment matter?" },
+      { name: "churn_risk", rubric: "Does this text signal the customer may cancel or leave?" },
+      { name: "legal",      rubric: "Does this text describe a legal or contractual dispute?" },
+    ],
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:** `billing` and `churn_risk` both cleared the threshold; scores are independent and do not sum to 1.
+
+```json
+{
+  "top_label": "churn_risk",
+  "scores": { "billing": 0.88, "churn_risk": 0.79, "legal": 0.31 },
+  "labels": [
+    { "label": "billing",    "score": 0.88, "rubric": "Does this text describe a billing, invoice, or payment matter?" },
+    { "label": "churn_risk", "score": 0.79, "rubric": "Does this text signal the customer may cancel or leave?" },
+    { "label": "legal",      "score": 0.31, "rubric": "Does this text describe a legal or contractual dispute?" }
+  ],
+  "results": [
+    {
+      "id": "0",
+      "top_label": "churn_risk",
+      "matched_labels": ["billing", "churn_risk"],
+      "scores": { "billing": 0.88, "churn_risk": 0.79, "legal": 0.31 },
+      "labels": [
+        { "label": "billing",    "score": 0.88, "rubric": "Does this text describe a billing, invoice, or payment matter?" },
+        { "label": "churn_risk", "score": 0.79, "rubric": "Does this text signal the customer may cancel or leave?" },
+        { "label": "legal",      "score": 0.31, "rubric": "Does this text describe a legal or contractual dispute?" }
+      ]
+    }
+  ],
+  "chunk_count": 1
+}
+```
+
+---
+
+### Batch: classifying many chunks against one profile
+
+Send a `chunks` array to classify many inputs against the same `labels` in one request. Each chunk still gets its own calibrated scores, but the shared profile (labels + `system_prompt`) is billed once for the whole request instead of once per chunk. Results are returned in `results`, correlated by `id`.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.scaledown.xyz/classify \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "chunks": [
+      { "id": "msg-1", "text": "I love the new dashboard, it saves me so much time." },
+      { "id": "msg-2", "text": "The export button has been broken for a week." }
+    ],
+    "labels": [
+      { "name": "praise",     "rubric": "Is this text expressing satisfaction or positive feedback?" },
+      { "name": "bug_report", "rubric": "Is this text reporting a bug or something not working?" }
+    ]
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.scaledown.xyz/classify",
+    headers={"x-api-key": "<your-api-key>"},
+    json={
+        "chunks": [
+            {"id": "msg-1", "text": "I love the new dashboard, it saves me so much time."},
+            {"id": "msg-2", "text": "The export button has been broken for a week."},
+        ],
+        "labels": [
+            {"name": "praise",     "rubric": "Is this text expressing satisfaction or positive feedback?"},
+            {"name": "bug_report", "rubric": "Is this text reporting a bug or something not working?"},
+        ],
+    },
+)
+print(response.json())
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.scaledown.xyz/classify", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "<your-api-key>",
+  },
+  body: JSON.stringify({
+    chunks: [
+      { id: "msg-1", text: "I love the new dashboard, it saves me so much time." },
+      { id: "msg-2", text: "The export button has been broken for a week." },
+    ],
+    labels: [
+      { name: "praise",     rubric: "Is this text expressing satisfaction or positive feedback?" },
+      { name: "bug_report", rubric: "Is this text reporting a bug or something not working?" },
+    ],
+  }),
+});
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:** one entry per chunk, correlated by `id`. Top-level fields mirror the first result.
+
+```json
+{
+  "top_label": "praise",
+  "scores": { "praise": 0.96, "bug_report": 0.04 },
+  "labels": [
+    { "label": "praise",     "score": 0.96, "rubric": "Is this text expressing satisfaction or positive feedback?" },
+    { "label": "bug_report", "score": 0.04, "rubric": "Is this text reporting a bug or something not working?" }
+  ],
+  "results": [
+    {
+      "id": "msg-1",
+      "top_label": "praise",
+      "matched_labels": null,
+      "scores": { "praise": 0.96, "bug_report": 0.04 },
+      "labels": [
+        { "label": "praise",     "score": 0.96, "rubric": "Is this text expressing satisfaction or positive feedback?" },
+        { "label": "bug_report", "score": 0.04, "rubric": "Is this text reporting a bug or something not working?" }
+      ]
+    },
+    {
+      "id": "msg-2",
+      "top_label": "bug_report",
+      "matched_labels": null,
+      "scores": { "praise": 0.02, "bug_report": 0.98 },
+      "labels": [
+        { "label": "praise",     "score": 0.02, "rubric": "Is this text expressing satisfaction or positive feedback?" },
+        { "label": "bug_report", "score": 0.98, "rubric": "Is this text reporting a bug or something not working?" }
+      ]
+    }
+  ],
+  "chunk_count": 2
+}
+```
+
+<Note>
+`chunks` and `multi_label` can be combined: every chunk is scored independently against every label.
+</Note>
+
+---
+
 ## Writing good rubrics
 
 The rubric is the most important part of a classify request. It is phrased as a yes/no question the model uses to score each label. The model scores how strongly the text "answers yes" to the question.
@@ -426,5 +670,7 @@ The endpoint always returns a winner - even if the model is uncertain. If you ne
 
 ## Notes
 
-- There is no hard limit on the number of labels, but performance degrades with very large sets (>20) since each label requires a separate model call.
-- Scores are **relative**, not absolute. A top score of `0.4` in a 10-label request can still be the correct answer - it just means probability mass was spread across many labels.
+- Single-label mode supports up to 26 labels; multi-label mode is capped at 16. Batch requests are capped at 50 chunks. Larger sets cost more since each label (and each chunk) is a separate calibrated model call, run with bounded concurrency.
+- In single-label mode, scores are **relative**, not absolute. A top score of `0.4` in a 10-label request can still be the correct answer - it just means probability mass was spread across many labels.
+- Batch (`chunks`) exists to reduce cost: the shared profile is billed once per request instead of once per chunk. Calibration is identical to sending each chunk separately.
+- Multi-label and batch requests do not return a `reasoning` field.

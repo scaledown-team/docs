@@ -51,7 +51,7 @@
                     "properties": {
                       "rate": {
                         "type": "string",
-                        "description": "Compression aggressiveness. Use 'auto' or a number between 0 and 1 (e.g. '0.5')."
+                        "description": "Compression aggressiveness. Use 'auto' or a number between 0 and 1 for the fraction of tokens to remove (e.g. 0.8 removes about 80% and keeps about 20%)."
                       }
                     }
                   }
@@ -261,6 +261,160 @@
         }
       }
     },
+    "/v1/scaledown": {
+      "post": {
+        "summary": "Decisions",
+        "description": "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score questions about a shared state object.",
+        "operationId": "decisions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["state", "questions"],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": ["classify-1"],
+                    "default": "classify-1",
+                    "description": "Optional. \"classify-1\" is the only supported value and also the default when omitted. Any other value returns 422."
+                  },
+                  "state": {
+                    "description": "The item being decided on. A plain string is shorthand for {\"text\": \"...\"}.",
+                    "oneOf": [
+                      { "type": "string" },
+                      {
+                        "type": "object",
+                        "description": "The item being decided on. Provide text, document, or both.",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "description": "The text to evaluate every question against."
+                          },
+                          "document": {
+                            "type": "string",
+                            "description": "A base64-encoded file to evaluate (image or PDF). Non-standard extension, not part of the Jev API."
+                          },
+                          "document_mime_type": {
+                            "type": "string",
+                            "description": "MIME type of document. Required when document is provided."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "questions": {
+                    "type": "object",
+                    "description": "Map of question name to question definition. Must contain at least one entry.",
+                    "additionalProperties": {
+                      "type": "object",
+                      "required": ["type"],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["choice", "noul", "score"],
+                          "description": "choice: pick one mutually-exclusive option from criteria. noul: independent yes/no question. score: an ordered-scale question, answered as a position on the scale."
+                        },
+                        "instructions": {
+                          "type": "string",
+                          "description": "Optional guidance for how to answer the question."
+                        },
+                        "criteria": {
+                          "description": "Required for choice questions: object mapping option key to description (at least one entry). Required for score questions: ORDERED array of 2-10 level descriptions, lowest to highest (level index = array position). Ignored for noul questions.",
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": { "type": "string" }
+                            },
+                            {
+                              "type": "array",
+                              "items": { "type": "string" },
+                              "minItems": 2,
+                              "maxItems": 10
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model": {
+                      "type": "string",
+                      "description": "Always \"classify-1\"."
+                    },
+                    "answers": {
+                      "type": "object",
+                      "description": "Map of question name to typed answer, matching the questions keys from the request.",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["choice", "noul", "score"]
+                          },
+                          "choice": {
+                            "type": "string",
+                            "description": "choice answers only: the chosen option key."
+                          },
+                          "probabilities": {
+                            "type": "object",
+                            "description": "choice/score answers only: map of option key (choice) or level index as a string (score) to probability. Sums to 1.0.",
+                            "additionalProperties": { "type": "number" }
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "description": "choice/score answers only: the chosen option's, or top level's, probability."
+                          },
+                          "noul": {
+                            "type": "number",
+                            "description": "noul answers only: P(yes), 0 to 1."
+                          },
+                          "score": {
+                            "type": "number",
+                            "description": "score answers only: probability-weighted expected value across level indices (sum of level_index * probability). A continuous position on the scale, not necessarily a whole level."
+                          },
+                          "legend": {
+                            "type": "object",
+                            "description": "score answers only: map of level index (as a string) to its criteria description, echoing the request's criteria back for display.",
+                            "additionalProperties": { "type": "string" }
+                          }
+                        }
+                      }
+                    },
+                    "usage": {
+                      "type": "object",
+                      "description": "Token usage and cost, summed across every internal call the request fanned out to.",
+                      "properties": {
+                        "input_tokens": { "type": "integer" },
+                        "output_tokens": { "type": "integer" },
+                        "cost": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": { "description": "Insufficient credits." },
+          "422": { "description": "Malformed request body, empty questions map, empty criteria on a choice question, a score question's criteria outside the 2-10 item range, neither state.text nor state.document provided, an unsupported model value, or OCR failed." },
+          "502": { "description": "Model service unavailable or returned an error." },
+          "504": { "description": "Request timed out." }
+        }
+      }
+    },
     "/summarization/abstractive": {
       "post": {
         "summary": "Summarize",
@@ -284,8 +438,9 @@
                   },
                   "max_tokens": {
                     "type": "number",
-                    "default": 20048,
-                    "description": "Maximum number of tokens in the generated summary."
+                    "default": 200,
+                    "maximum": 200,
+                    "description": "Maximum number of tokens in the generated summary. Defaults to 200 and cannot be raised; contact neal@scaledown.ai for a higher limit."
                   }
                 }
               }

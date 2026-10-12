@@ -59,7 +59,8 @@ API details:
       "scaledown": { "rate": "auto" | 0.0–1.0 }
     }
   `rate` can be the string "auto" (recommended) or a float between 0.0 and 1.0,
-  where 0.5 means compress to 50% of the original token count.
+  the fraction of tokens to REMOVE: 0.5 removes about 50% (keeps about 50%),
+  0.8 removes about 80% (keeps about 20%). Approximate, not an exact budget.
 - Success response (JSON):
     {
       "compressed_prompt": "...",

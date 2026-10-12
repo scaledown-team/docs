@@ -25,7 +25,7 @@ API details:
       "document": "<base64-encoded file>",               // optional; image or PDF
       "document_mime_type": "image/jpeg",                // required when document is set
       "instructions": "<optional extra rules>",          // optional field
-      "max_tokens": 20048                                // optional field, default 20048
+      "max_tokens": 200                                // optional field, default 200
     }
   Either "text" or "document" must be provided. If both are given, OCR text is appended
   after the plain text before summarization.
@@ -73,7 +73,7 @@ API details:
       "document": "<base64-encoded file>",               // optional; image or PDF
       "document_mime_type": "application/pdf",           // required when document is set
       "instructions": "<optional rules appended to base behaviour>",  // optional
-      "max_tokens": 20048                                              // optional, default 20048
+      "max_tokens": 200                                              // optional, default 200
     }
   Either "text" or "document" must be provided. If both are given, the OCR text is
   appended after the plain text before summarization.
@@ -143,7 +143,7 @@ ScaleDown API details:
       "document": "<base64-encoded file>",               // optional; image or PDF
       "document_mime_type": "application/pdf",           // required when document is set
       "instructions": "<optional rules appended to base behaviour>",  // optional
-      "max_tokens": 20048                                              // optional
+      "max_tokens": 200                                              // optional
     }
   Either "text" or "document" must be provided.
   "instructions" extends, not replaces, the default faithful-summary behaviour.
