@@ -26,9 +26,12 @@ API details:
     }
 - Success response (JSON):
     {
-      "compressed_prompt": "...",
-      "original_prompt_tokens": 150,
-      "compressed_prompt_tokens": 65,
+      "results": {
+        "compressed_prompt": "...",   // the compressed context (prompt is not folded in)
+        "original_prompt": "...",     // the prompt you sent, unchanged
+        "original_prompt_tokens": 150,
+        "compressed_prompt_tokens": 65
+      },
       "successful": true,
       "latency_ms": 2341,
       "request_metadata": { "compression_rate": "auto", ... }
@@ -39,7 +42,7 @@ Requirements:
 - Accept the API key as the third parameter.
 - Raise a ValueError with a descriptive message on any non-2xx HTTP response,
   including the status code and response body in the message.
-- Return the `compressed_prompt` string on success.
+- Return the `results.compressed_prompt` string on success.
 ```
 
 ### Production-ready
@@ -63,16 +66,28 @@ API details:
   0.8 removes about 80% (keeps about 20%). Approximate, not an exact budget.
 - Success response (JSON):
     {
-      "compressed_prompt": "...",
-      "original_prompt_tokens": 150,
-      "compressed_prompt_tokens": 65,
+      "results": {
+        "success": true,
+        "compressed_prompt": "...",     // the compressed context (prompt is not folded in)
+        "original_prompt": "...",       // the prompt you sent, unchanged
+        "original_prompt_tokens": 150,
+        "compressed_prompt_tokens": 65,
+        "compression_ratio": 0.43
+      },
+      "model_used": "gpt-4o",
+      "input_tokens": 150,
+      "total_original_tokens": 150,
+      "total_compressed_tokens": 65,
+      "num_pairs_processed": 1,
+      "num_successful": 1,
+      "num_failed": 0,
       "successful": true,
+      "partially_successful": false,
       "latency_ms": 2341,
       "request_metadata": {
         "compression_time_ms": 2341,
         "compression_rate": "auto",
-        "prompt_length": 425,
-        "compressed_prompt_length": 189
+        "average_compression_ratio": 0.43
       }
     }
 - Error responses: 400 (malformed body), 401 (missing/invalid key), 429 (rate limit exceeded),
@@ -126,9 +141,12 @@ ScaleDown API details:
   `rate` "auto" lets ScaleDown pick the optimal compression level.
 - Success response (JSON):
     {
-      "compressed_prompt": "<compressed context + prompt as one string>",
-      "original_prompt_tokens": 150,
-      "compressed_prompt_tokens": 65,
+      "results": {
+        "compressed_prompt": "<the compressed context>",
+        "original_prompt": "<the prompt, unchanged>",
+        "original_prompt_tokens": 150,
+        "compressed_prompt_tokens": 65
+      },
       "successful": true,
       "latency_ms": 2341
     }
@@ -146,7 +164,7 @@ Requirements:
 3. Context replacement - Call /compress/raw/ with the body's "context" field as
    `context` and the body's "prompt" field as `prompt` (use an empty string if
    "prompt" is absent). Use rate "auto".
-   Store the compressed_prompt value in request.state.compressed_context so route
+   Store the results.compressed_prompt value in request.state.compressed_context so route
    handlers can read it.
 
 4. Graceful degradation - If the ScaleDown call fails for any reason (network timeout,
@@ -233,9 +251,9 @@ class ScaleDownCompressClient:
                 data = response.json()
                 meta = data.get("request_metadata", {})
                 return CompressResult(
-                    compressed_prompt=data["compressed_prompt"],
-                    original_tokens=data["original_prompt_tokens"],
-                    compressed_tokens=data["compressed_prompt_tokens"],
+                    compressed_prompt=data["results"]["compressed_prompt"],
+                    original_tokens=data["results"]["original_prompt_tokens"],
+                    compressed_tokens=data["results"]["compressed_prompt_tokens"],
                     compression_rate=meta.get("compression_rate", rate),
                     latency_ms=data["latency_ms"],
                 )
