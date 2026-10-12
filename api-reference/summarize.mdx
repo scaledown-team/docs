@@ -1,86 +1,102 @@
 ---
 title: "Summarize"
-openapi: "POST /summarization/abstractive"
-description: "Produce an abstractive summary of a block of text."
+description: "Produce an abstractive summary of a block of text through the OpenAI-compatible chat completions API."
 ---
 
 ## Overview
 
-The `/summarization/abstractive` endpoint condenses text in the model's own words without adding new information or commentary. Unlike extractive summarization, the output is a fluent rewrite - not a selection of lifted sentences.
+Summarize is called through the OpenAI-compatible `POST /v1/chat/completions` endpoint. Set `model` to `summarize` (latest) or `summarize-1` (pinned version) and send the text as the last user message. The model condenses it in its own words without adding new information or commentary. Unlike extractive summarization, the output is a fluent rewrite - not a selection of lifted sentences.
+
+Because the endpoint is OpenAI-compatible, you can point an unmodified OpenAI or OpenRouter SDK at ScaleDown by changing only the base URL and API key.
+
+```
+POST https://api.scaledown.xyz/v1/chat/completions
+```
 
 ## Request
 
-<ParamField body="text" type="string">
-  The input text to summarize. Can be an article, document, transcript, or any plain text string. Either `text` or `document` must be provided. If both are given, the OCR text is appended after `text`.
+<ParamField body="model" type="string" required>
+  `"summarize"` (always the latest version) or `"summarize-1"` (pinned to version 1). Both currently behave identically.
 </ParamField>
 
-<ParamField body="document" type="string">
-  A base64-encoded file to summarize. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input. Either `text` or `document` must be provided.
-</ParamField>
-
-<ParamField body="document_mime_type" type="string">
-  MIME type of the document (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
-</ParamField>
-
-<ParamField body="instructions" type="string">
-  Optional additional rules for the summary. These are appended to the base instructions - they extend, not replace, the default behaviour (no new information, no commentary).
-
-  Examples:
-  - `"Use bullet points."`
-  - `"Focus on financial figures only."`
-  - `"Write in Spanish."`
-  - `"Limit to 3 sentences."`
+<ParamField body="messages" type="array" required>
+  Standard OpenAI chat messages. The **last user message** is the text to summarize. Any **system** messages are joined and used as the summary `instructions`.
 </ParamField>
 
 <ParamField body="max_tokens" type="number" default={200}>
-  Maximum number of tokens in the generated summary. Defaults to `200`, which is also the maximum: larger values are capped at 200, and the model is instructed to finish within the limit. If a summary still hits the limit it is cut off and the response sets `finish_reason` to `"length"` with a `notice`. For a higher output limit, email [neal@scaledown.ai](mailto:neal@scaledown.ai).
+  Standard OpenAI field. Maximum number of tokens in the generated summary. Defaults to `200`, which is also the maximum: larger values are capped at 200, and the model is instructed to finish within the limit. If a summary still hits the limit it is cut off and the parsed result sets `finish_reason` to `"length"` with a `notice`. For a higher output limit, email [neal@scaledown.ai](mailto:neal@scaledown.ai).
 </ParamField>
+
+<ParamField body="document" type="string">
+  Non-standard extension, passed with the SDK's `extra_body`. A base64-encoded file to summarize. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input.
+</ParamField>
+
+<ParamField body="document_mime_type" type="string">
+  Non-standard extension, passed with `extra_body`. MIME type of the document (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
+</ParamField>
+
+<ParamField body="text" type="string">
+  Optional top-level override for the input text. When present it takes precedence over the last user message - this lets a [batch](/api-reference/batch-overview) item `body` be reused verbatim. Likewise a top-level `instructions` string takes precedence over system messages.
+</ParamField>
+
+Temperature, top-p, and other sampling parameters are fixed and not configurable.
 
 ## Response
 
-<ResponseField name="summary" type="string">
-  The generated summary text.
+A standard `chat.completion`. The summary result is a **JSON string** in `choices[0].message.content` - parse it to read the fields below.
+
+<ResponseField name="model" type="string">
+  Echoes the `model` you sent (`summarize` or `summarize-1`).
 </ResponseField>
 
-<ResponseField name="input_chars" type="number">
-  Character count of the input text.
+<ResponseField name="usage" type="object">
+  `prompt_tokens` is the input tokens billed for the request, `completion_tokens` the model's output tokens, and `total_tokens` their sum.
 </ResponseField>
 
-<ResponseField name="output_chars" type="number">
-  Character count of the generated summary.
-</ResponseField>
+<ResponseField name="choices[0].message.content" type="string">
+  A JSON string with these fields:
 
-<ResponseField name="latency_ms" type="number">
-  End-to-end request latency in milliseconds.
-</ResponseField>
-
-<ResponseField name="input_tokens" type="number">
-  Input tokens billed for the request. Output length is capped at 200 tokens and does not add to the input-token charge.
-</ResponseField>
-
-<ResponseField name="finish_reason" type="string">
-  `"stop"` when the summary finished on its own, or `"length"` when it was cut off at the output limit.
-</ResponseField>
-
-<ResponseField name="notice" type="string | null">
-  Present only when `finish_reason` is `"length"`. Explains that the output limit was reached and that a higher limit is available by contacting neal@scaledown.ai.
-</ResponseField>
-
-<ResponseField name="ocr_text" type="string | null">
-  The raw text extracted from the document via OCR. `null` if no `document` was provided.
+  <Expandable title="Parsed content">
+    <ResponseField name="summary" type="string">
+      The generated summary text.
+    </ResponseField>
+    <ResponseField name="input_chars" type="number">
+      Character count of the input text.
+    </ResponseField>
+    <ResponseField name="output_chars" type="number">
+      Character count of the generated summary.
+    </ResponseField>
+    <ResponseField name="latency_ms" type="number">
+      End-to-end request latency in milliseconds.
+    </ResponseField>
+    <ResponseField name="input_tokens" type="number">
+      Input tokens billed for the request. Output length is capped at 200 tokens and does not add to the input-token charge.
+    </ResponseField>
+    <ResponseField name="finish_reason" type="string">
+      `"stop"` when the summary finished on its own, or `"length"` when it was cut off at the output limit.
+    </ResponseField>
+    <ResponseField name="notice" type="string | null">
+      Present only when `finish_reason` is `"length"`. Explains that the output limit was reached and that a higher limit is available by contacting neal@scaledown.ai.
+    </ResponseField>
+    <ResponseField name="ocr_text" type="string | null">
+      The raw text extracted from the document via OCR. `null` if no `document` was provided.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 ## Error responses
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, or OCR failed. |
+| `400 Bad Request` | No input text (no user message, `text`, or `document`). |
+| `402 Payment Required` | Insufficient credits. |
+| `422 Unprocessable Entity` | Malformed request body or OCR failed. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Summarization request timed out. |
 
 ## Authentication
 
-Include your API key in every request using the `x-api-key` header.
+Include your API key in every request using the `x-api-key` header. `Authorization: Bearer <your-api-key>` is also accepted, so an OpenAI SDK only needs its `api_key` set.
 
 ```bash
 -H "x-api-key: <your-api-key>"
@@ -93,42 +109,47 @@ Include your API key in every request using the `x-api-key` header.
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/summarization/abstractive \
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "text": "Your long text here..."
+    "model": "summarize",
+    "messages": [
+      {"role": "user", "content": "Your long text here..."}
+    ]
   }'
 ```
 
 ```python Python
-import requests
+import json
+from openai import OpenAI
 
-response = requests.post(
-    "https://api.scaledown.xyz/summarization/abstractive",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "Your long text here...",
-    },
+client = OpenAI(
+    base_url="https://api.scaledown.xyz/v1",
+    api_key="<your-api-key>",
 )
-print(response.json())
+
+r = client.chat.completions.create(
+    model="summarize",
+    messages=[{"role": "user", "content": "Your long text here..."}],
+)
+print(json.loads(r.choices[0].message.content)["summary"])
 ```
 
 ```typescript TypeScript
-const response = await fetch(
-  "https://api.scaledown.xyz/summarization/abstractive",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": "<your-api-key>",
-    },
-    body: JSON.stringify({
-      text: "Your long text here...",
-    }),
-  }
-);
-const data = await response.json();
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.scaledown.xyz/v1",
+  apiKey: "<your-api-key>",
+});
+
+const r = await client.chat.completions.create({
+  model: "summarize",
+  messages: [{ role: "user", content: "Your long text here..." }],
+});
+const result = JSON.parse(r.choices[0].message.content!);
+console.log(result.summary);
 ```
 
 </CodeGroup>
@@ -137,70 +158,69 @@ const data = await response.json();
 
 ```json
 {
-  "summary": "The company reported strong Q3 results, approved a share buyback program, and announced plans for Southeast Asian expansion.",
-  "input_chars": 8340,
-  "output_chars": 142,
-  "latency_ms": 3241,
-  "input_tokens": 2105,
-  "finish_reason": "stop",
-  "notice": null
+  "id": "chatcmpl-9f2c1e0a7b3d4c5e8a6b1d2f3e4a5b6c",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "summarize",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "{\"summary\":\"The company reported strong Q3 results, approved a share buyback program, and announced plans for Southeast Asian expansion.\",\"input_chars\":8340,\"output_chars\":142,\"latency_ms\":3241,\"input_tokens\":2105,\"finish_reason\":\"stop\",\"notice\":null}"
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": { "prompt_tokens": 2105, "completion_tokens": 38, "total_tokens": 2143 }
 }
 ```
 
 ### With instructions
 
-Use `instructions` to control format, language, focus area, or length.
+Put format, language, focus area, or length guidance in a **system** message. It extends, and does not replace, the default behaviour (no new information, no commentary).
 
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/summarization/abstractive \
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "text": "Your long text here...",
-    "instructions": "Use bullet points. Focus on dates and key decisions only.",
-    "max_tokens": 150
+    "model": "summarize-1",
+    "max_tokens": 150,
+    "messages": [
+      {"role": "system", "content": "Use bullet points. Focus on dates and key decisions only."},
+      {"role": "user", "content": "Your long text here..."}
+    ]
   }'
 ```
 
 ```python Python
-import requests
-
-response = requests.post(
-    "https://api.scaledown.xyz/summarization/abstractive",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "Your long text here...",
-        "instructions": "Use bullet points. Focus on dates and key decisions only.",
-        "max_tokens": 150,
-    },
+r = client.chat.completions.create(
+    model="summarize-1",
+    max_tokens=150,
+    messages=[
+        {"role": "system", "content": "Use bullet points. Focus on dates and key decisions only."},
+        {"role": "user", "content": "Your long text here..."},
+    ],
 )
-print(response.json())
+print(json.loads(r.choices[0].message.content)["summary"])
 ```
 
 ```typescript TypeScript
-const response = await fetch(
-  "https://api.scaledown.xyz/summarization/abstractive",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": "<your-api-key>",
-    },
-    body: JSON.stringify({
-      text: "Your long text here...",
-      instructions: "Use bullet points. Focus on dates and key decisions only.",
-      max_tokens: 150,
-    }),
-  }
-);
-const data = await response.json();
+const r = await client.chat.completions.create({
+  model: "summarize-1",
+  max_tokens: 150,
+  messages: [
+    { role: "system", content: "Use bullet points. Focus on dates and key decisions only." },
+    { role: "user", content: "Your long text here..." },
+  ],
+});
+console.log(JSON.parse(r.choices[0].message.content!).summary);
 ```
 
 </CodeGroup>
 
-**Response:**
+The parsed `content` is:
 
 ```json
 {
@@ -216,40 +236,42 @@ const data = await response.json();
 
 ### Summarizing a document
 
-Pass a base64-encoded image or PDF in the `document` field. The OCR text is extracted automatically and summarized. The raw OCR output is returned as `ocr_text`.
+Pass a base64-encoded image or PDF through `extra_body` (`extra_body` fields are merged into the top level of the request). The OCR text is extracted automatically and summarized, and the raw OCR output is returned as `ocr_text`. A message is still required; use a short placeholder user message.
 
 <CodeGroup>
 
 ```bash cURL
 DOCUMENT=$(base64 -b 0 -i report.pdf)
 
-curl -X POST https://api.scaledown.xyz/summarization/abstractive \
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
+    "model": "summarize",
+    "messages": [
+      {"role": "system", "content": "Use bullet points. Focus on key figures and decisions only."},
+      {"role": "user", "content": "Summarize the attached document."}
+    ],
     "document": "'"$DOCUMENT"'",
-    "document_mime_type": "application/pdf",
-    "instructions": "Use bullet points. Focus on key figures and decisions only."
+    "document_mime_type": "application/pdf"
   }'
 ```
 
 ```python Python
 import base64
-import requests
 
 with open("report.pdf", "rb") as f:
     document = base64.b64encode(f.read()).decode()
 
-response = requests.post(
-    "https://api.scaledown.xyz/summarization/abstractive",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "document": document,
-        "document_mime_type": "application/pdf",
-        "instructions": "Use bullet points. Focus on key figures and decisions only.",
-    },
+r = client.chat.completions.create(
+    model="summarize",
+    messages=[
+        {"role": "system", "content": "Use bullet points. Focus on key figures and decisions only."},
+        {"role": "user", "content": "Summarize the attached document."},
+    ],
+    extra_body={"document": document, "document_mime_type": "application/pdf"},
 )
-print(response.json())
+print(json.loads(r.choices[0].message.content)["summary"])
 ```
 
 ```typescript TypeScript
@@ -257,41 +279,25 @@ import fs from "fs";
 
 const document = fs.readFileSync("report.pdf").toString("base64");
 
-const response = await fetch(
-  "https://api.scaledown.xyz/summarization/abstractive",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": "<your-api-key>",
-    },
-    body: JSON.stringify({
-      document,
-      document_mime_type: "application/pdf",
-      instructions: "Use bullet points. Focus on key figures and decisions only.",
-    }),
-  }
-);
-const data = await response.json();
+const r = await client.chat.completions.create({
+  model: "summarize",
+  messages: [
+    { role: "system", content: "Use bullet points. Focus on key figures and decisions only." },
+    { role: "user", content: "Summarize the attached document." },
+  ],
+  // @ts-expect-error ScaleDown extension fields
+  document,
+  document_mime_type: "application/pdf",
+});
+console.log(JSON.parse(r.choices[0].message.content!).summary);
 ```
 
 </CodeGroup>
-
-**Response:**
-
-```json
-{
-  "summary": "- Q3 revenue reached $4.2B, up 12% year-over-year.\n- Board approved a $500M share buyback program.\n- CEO announced Southeast Asian expansion by mid-2027.",
-  "input_chars": 12480,
-  "output_chars": 178,
-  "latency_ms": 4103,
-  "ocr_text": "Q3 2024 Earnings Report\nRevenue: $4.2 billion (+12% YoY)\n..."
-}
-```
 
 ---
 
 ## Notes
 
-- The base instructions (no new information, no commentary) are always applied. The `instructions` field adds on top of them - it does not replace them.
-- Temperature, top-p, and other sampling parameters are fixed and not configurable via the API.
+- The base instructions (no new information, no commentary) are always applied. System messages add on top of them - they do not replace them.
+- `GET /v1/models` lists `summarize` and `summarize-1`. The bare name always points at the latest version; use `summarize-1` to pin.
+- Streaming is not supported; the full result is returned in one response.

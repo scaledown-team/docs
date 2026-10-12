@@ -1,124 +1,131 @@
 ---
 title: "Extract"
-openapi: "POST /extract"
-description: "Extract named entities from text using a custom-defined schema."
+description: "Extract named entities from text using a custom-defined schema through the OpenAI-compatible chat completions API."
 ---
 
 ## Overview
 
-The `/extract` endpoint runs Named Entity Recognition (NER) over a block of text. Unlike standard NER, you define the entity types you want in plain English - the model uses your descriptions to find matching spans, returning each one with a confidence score and surrounding context.
+Extract is called through the OpenAI-compatible `POST /v1/chat/completions` endpoint. Set `model` to `extract` (latest) or `extract-1` (pinned version), put the text in the last user message, and describe the fields you want with the standard `response_format` JSON schema. The model runs Named Entity Recognition over the text. Unlike standard NER, you define the entity types in plain English - each property name becomes an entity type and its `description` is the search criteria - and each match comes back with a confidence score and surrounding context.
 
-Every result includes surrounding text on each side of the matched span, so you can validate or use the extracted value without going back to the source. The amount of context returned is controlled by the `context_chars` parameter (default: 500 characters per side).
+Because the endpoint is OpenAI-compatible, you can point an unmodified OpenAI or OpenRouter SDK at ScaleDown by changing only the base URL and API key.
+
+```
+POST https://api.scaledown.xyz/v1/chat/completions
+```
 
 ## Request
 
-<ParamField body="text" type="string">
-  The input text to extract entities from. Can be a full document, web page content, article, or any plain text string. Either `text` or `document` must be provided. If both are given, the OCR text is appended after `text`.
+<ParamField body="model" type="string" required>
+  `"extract"` (always the latest version) or `"extract-1"` (pinned to version 1). Both currently behave identically.
 </ParamField>
 
-<ParamField body="document" type="string">
-  A base64-encoded file to extract entities from. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input. Either `text` or `document` must be provided.
+<ParamField body="messages" type="array" required>
+  Standard OpenAI chat messages. The **last user message** is the text to extract from. Any **system** messages are joined and used as a global `instruction` - rules that apply across all entity types, such as deduplication logic or ranking constraints.
 </ParamField>
 
-<ParamField body="document_mime_type" type="string">
-  MIME type of the document (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
-</ParamField>
+<ParamField body="response_format" type="object" required>
+  Defines what to extract. Must be `{ "type": "json_schema", "json_schema": { "name": "...", "schema": {...} } }`. Each property of `schema.properties` is an entity type:
 
-<ParamField body="instruction" type="string">
-  Optional global instruction prepended to the text before extraction. Use this to provide rules that apply across all entity types - for example, deduplication logic, ranking constraints, or output format requirements. This is separate from per-entity descriptions.
-</ParamField>
+  - A **scalar property** (`string`, `number`, `integer`, `boolean`) - its `description` says what to look for
+  - A **nested object** (`type: "object"` with `properties`) - a structured sub-schema
+  - An **array of objects** (`type: "array"` with object `items`) - a repeated structure, such as line items
+  - A **classification key** - a property with an `enum`, or a `oneOf` of `const` branches, routed to the classifier (see [Classification keys](#classification-keys))
 
-<ParamField body="context_chars" type="number" default={500}>
-  Number of characters of surrounding text to include on each side of a matched entity span in the `context` response field. Set to `0` to omit context entirely, or increase for wider windows on long documents.
-</ParamField>
-
-<ParamField body="entities" type="object" required>
-  A mapping of entity type names to their definition. Each value can be one of:
-
-  - A **plain string** - a description of what to look for
-  - An **object** - with optional `description`, `threshold`, and `top_n` fields
-  - A **nested object** - defining a structured sub-schema (object with named fields)
-  - An **array of objects** - defining a repeated structured schema (e.g. a list of line items)
-  - A **classification key** - an object with a `labels` list, routed to the classifier (see below)
-
-  <Expandable title="Entity object fields">
-    <ParamField body="description" type="string">
-      What this entity type represents. Used as the model's search criteria.
-    </ParamField>
-    <ParamField body="threshold" type="number">
-      Per-entity confidence cutoff (0–1). Overrides the global `threshold` for this type only.
-    </ParamField>
-    <ParamField body="top_n" type="number">
-      Per-entity result limit. Overrides the global `top_n` for this type only.
-    </ParamField>
-  </Expandable>
-
-  <Expandable title="Classification key fields">
-    A key whose object contains a `labels` list is treated as a **classification key**. Rather than copying a value out of the text, its value is decided by choosing among your labels using our classification model - which is purpose-built for categorical and boolean decisions and is more accurate on them than the extraction model. The response still includes the evidence span and surrounding context. See [Classification keys](#classification-keys) for details.
-
-    <ParamField body="labels" type="array" required>
-      The candidate values to choose between (2–26). Each label is either a **plain string** (the value to return) or an **object** with `name` and `rubric` fields, where `rubric` describes when that label applies. Providing rubrics improves accuracy.
-    </ParamField>
-    <ParamField body="description" type="string">
-      Optional context about the decision being made for this key. Prepended to the combined rubric.
-    </ParamField>
-  </Expandable>
+  Per-property `threshold` (0-1) and `top_n` annotations override the global values for that entity type only. `$ref` and `$defs` are not supported; inline your schema. Alternatively, send a flat top-level `entities` object instead of `response_format` (see below).
 </ParamField>
 
 <ParamField body="threshold" type="number" default={0.5}>
-  Global confidence threshold (0–1). Entities below this score are filtered out. Can be overridden per entity type.
+  Non-standard extension, passed with the SDK's `extra_body`. Global confidence threshold (0-1). Entities below this score are filtered out. Can be overridden per entity type.
 </ParamField>
 
 <ParamField body="top_n" type="number" default={0}>
-  Global limit on how many results to return per entity type, ranked by confidence descending. `0` returns all results above the threshold. Can be overridden per entity type.
+  Non-standard extension, passed with `extra_body`. Global limit on how many results to return per entity type, ranked by confidence descending. `0` returns all results above the threshold. Can be overridden per entity type.
+</ParamField>
+
+<ParamField body="context_chars" type="number" default={500}>
+  Non-standard extension, passed with `extra_body`. Number of characters of surrounding text to include on each side of a matched span in the `context` response field. Set to `0` to omit context entirely.
+</ParamField>
+
+<ParamField body="document" type="string">
+  Non-standard extension, passed with `extra_body`. A base64-encoded file to extract from. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input; if the user message also has text, the OCR text is appended after it.
+</ParamField>
+
+<ParamField body="document_mime_type" type="string">
+  Non-standard extension, passed with `extra_body`. MIME type of the document (e.g. `"image/jpeg"`, `"application/pdf"`). Required when `document` is provided.
+</ParamField>
+
+<ParamField body="entities" type="object">
+  Optional flat alternative to `response_format`, matching a [batch](/api-reference/batch-overview) item `body`. A mapping of entity type name to a description string, or to an object with `description`, `threshold` and `top_n`, a nested object, an array of objects, or a classification config `{"labels": [{"name": ..., "rubric": ...}]}`. When present it takes precedence over `response_format`. Top-level `text` and `instruction` likewise take precedence over the user and system messages.
 </ParamField>
 
 ## Response
 
-<ResponseField name="entities" type="array">
-  List of extracted scalar entities, sorted by confidence descending within each type. For nested or array entity types, values appear in `structured_result` instead.
+A standard `chat.completion`. The extraction result is a **JSON string** in `choices[0].message.content` - parse it to read the fields below.
 
-  <Expandable title="Entity object">
-    <ResponseField name="text" type="string">
-      The exact text span extracted from the input.
+<ResponseField name="model" type="string">
+  Echoes the `model` you sent (`extract` or `extract-1`).
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  `prompt_tokens` is the input tokens billed for the request, `completion_tokens` the model's output tokens, and `total_tokens` their sum.
+</ResponseField>
+
+<ResponseField name="choices[0].message.content" type="string">
+  A JSON string with these fields:
+
+  <Expandable title="Parsed content">
+    <ResponseField name="entities" type="array">
+      List of extracted scalar entities, sorted by confidence descending within each type. For nested or array entity types, values appear in `structured_result` instead.
+
+      <Expandable title="Entity object">
+        <ResponseField name="text" type="string">
+          The exact text span extracted from the input.
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The entity type name, matching a property name from your schema.
+        </ResponseField>
+        <ResponseField name="confidence" type="number">
+          Model confidence score between 0 and 1. For [classification keys](#classification-keys), this is the calibrated probability of the chosen label.
+        </ResponseField>
+        <ResponseField name="start" type="number">
+          Character offset of the start of the entity in the input text.
+        </ResponseField>
+        <ResponseField name="end" type="number">
+          Character offset of the end of the entity in the input text.
+        </ResponseField>
+        <ResponseField name="context" type="string">
+          Surrounding text around the entity span. The window size is controlled by `context_chars` (default: 500 characters per side).
+        </ResponseField>
+      </Expandable>
     </ResponseField>
-    <ResponseField name="type" type="string">
-      The entity type name, matching a key from your `entities` request field.
+
+    <ResponseField name="structured_result" type="object | null">
+      Present when any property uses a nested object or array schema. Contains the full structured extraction result keyed by entity name. Scalar fields from the same request also appear here alongside their nested counterparts. `null` for flat extraction requests.
     </ResponseField>
-    <ResponseField name="confidence" type="number">
-      Model confidence score between 0 and 1. For [classification keys](#classification-keys), this is the calibrated probability of the chosen label.
+
+    <ResponseField name="input_tokens" type="number">
+      Input tokens billed for the request.
     </ResponseField>
-    <ResponseField name="start" type="number">
-      Character offset of the start of the entity in the input text.
-    </ResponseField>
-    <ResponseField name="end" type="number">
-      Character offset of the end of the entity in the input text.
-    </ResponseField>
-    <ResponseField name="context" type="string">
-      Surrounding text around the entity span. The window size is controlled by the `context_chars` request parameter (default: 500 characters per side).
+
+    <ResponseField name="ocr_text" type="string | null">
+      The raw text extracted from the document via OCR. `null` if no `document` was provided.
     </ResponseField>
   </Expandable>
-</ResponseField>
-
-<ResponseField name="structured_result" type="object | null">
-  Present when any entity in the request uses a nested object or array schema. Contains the full structured extraction result keyed by entity name. Scalar fields from the same request also appear here alongside their nested counterparts. `null` for flat extraction requests.
-</ResponseField>
-
-<ResponseField name="ocr_text" type="string | null">
-  The raw text extracted from the document via OCR. `null` if no `document` was provided.
 </ResponseField>
 
 ## Error responses
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, a classification key with fewer than 2 or more than 26 labels, or OCR failed. |
+| `400 Bad Request` | No input text, `response_format` missing or not `json_schema`, a schema with no properties, or a `$ref`/`$defs` in the schema. |
+| `402 Payment Required` | Insufficient credits. |
+| `422 Unprocessable Entity` | Malformed request body, a classification key with fewer than 2 or more than 26 labels, or OCR failed. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Extraction request timed out. |
 
 ## Authentication
 
-Include your API key in every request using the `x-api-key` header.
+Include your API key in every request using the `x-api-key` header. `Authorization: Bearer <your-api-key>` is also accepted, so an OpenAI SDK only needs its `api_key` set.
 
 ```bash
 -H "x-api-key: <your-api-key>"
@@ -126,459 +133,250 @@ Include your API key in every request using the `x-api-key` header.
 
 ## Examples
 
+The Python and TypeScript examples assume this client:
+
+```python
+import json
+from openai import OpenAI
+
+client = OpenAI(base_url="https://api.scaledown.xyz/v1", api_key="<your-api-key>")
+```
+
 ### Basic extraction
 
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/extract \
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "text": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i.",
-    "entities": {
-      "Name": "Full name of the person",
-      "Twitter": "Twitter or X handle",
-      "Instagram": "Instagram username"
-    }
-  }'
-```
-
-```python Python
-import requests
-
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i.",
-        "entities": {
-            "Name": "Full name of the person",
-            "Twitter": "Twitter or X handle",
-            "Instagram": "Instagram username",
-        },
-    },
-)
-print(response.json())
-```
-
-```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    text: "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i.",
-    entities: {
-      Name: "Full name of the person",
-      Twitter: "Twitter or X handle",
-      Instagram: "Instagram username",
-    },
-  }),
-});
-const data = await response.json();
-```
-
-</CodeGroup>
-
-**Response:**
-
-```json
-{
-  "entities": [
-    {
-      "text": "Henry Wang",
-      "type": "Name",
-      "confidence": 0.994,
-      "start": 0,
-      "end": 10,
-      "context": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i."
-    },
-    {
-      "text": "@henryw",
-      "type": "Twitter",
-      "confidence": 0.976,
-      "start": 79,
-      "end": 86,
-      "context": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i."
-    },
-    {
-      "text": "@b0i",
-      "type": "Instagram",
-      "confidence": 0.978,
-      "start": 104,
-      "end": 108,
-      "context": "Henry Wang is a CS student from the SF Bay Area. You can find him on Twitter at @henryw and Instagram at @b0i."
-    }
-  ]
-}
-```
-
-### Extracting from an image (OCR)
-
-Extract works directly on photos and scans, not just plain text. Pass a base64-encoded **image** (or PDF) in the `document` field - we run OCR via AWS Textract, then extract your entities from the recovered text. This is the path to use for receipts, invoices, IDs, forms, business cards, and any photographed or scanned page. The raw OCR output is returned as `ocr_text` so you can audit exactly what the model read.
-
-<Tip>
-  Supported formats: **JPEG, PNG, TIFF**, and single- or multi-page **PDF**. `document_mime_type` is required whenever `document` is set - use the file's real MIME type (e.g. `image/jpeg`, `image/png`, `application/pdf`) so Textract decodes the bytes correctly. You can also send `text` and `document` together; the OCR output is appended after your `text`.
-</Tip>
-
-The example below extracts fields from a photographed receipt:
-
-<CodeGroup>
-
-```bash cURL
-DOCUMENT=$(base64 -b 0 -i receipt.jpg)
-
-curl -X POST https://api.scaledown.xyz/extract \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <your-api-key>" \
-  -d '{
-    "document": "'"$DOCUMENT"'",
-    "document_mime_type": "image/jpeg",
-    "entities": {
-      "merchant": "Name of the store or merchant",
-      "total": "Total amount paid, including currency",
-      "date": "Date of the transaction"
-    }
-  }'
-```
-
-```python Python
-import base64
-import requests
-
-with open("receipt.jpg", "rb") as f:
-    document = base64.b64encode(f.read()).decode()
-
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "document": document,
-        "document_mime_type": "image/jpeg",
-        "entities": {
-            "merchant": "Name of the store or merchant",
-            "total": "Total amount paid, including currency",
-            "date": "Date of the transaction",
-        },
-    },
-)
-data = response.json()
-print(data["entities"])
-print(data["ocr_text"])  # raw text recovered from the image
-```
-
-```typescript TypeScript
-import fs from "fs";
-
-const document = fs.readFileSync("receipt.jpg").toString("base64");
-
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    document,
-    document_mime_type: "image/jpeg",
-    entities: {
-      merchant: "Name of the store or merchant",
-      total: "Total amount paid, including currency",
-      date: "Date of the transaction",
-    },
-  }),
-});
-const data = await response.json();
-console.log(data.ocr_text); // raw text recovered from the image
-```
-
-</CodeGroup>
-
-**Response:**
-
-```json
-{
-  "entities": [
-    { "text": "Blue Bottle Coffee", "type": "merchant", "confidence": 0.98, "start": 0, "end": 18, "context": "Blue Bottle Coffee ..." },
-    { "text": "$12.50", "type": "total", "confidence": 0.95, "start": 38, "end": 44, "context": "... TOTAL $12.50" },
-    { "text": "03/14/2026", "type": "date", "confidence": 0.97, "start": 19, "end": 29, "context": "Blue Bottle Coffee 03/14/2026 ..." }
-  ],
-  "structured_result": null,
-  "ocr_text": "Blue Bottle Coffee\n03/14/2026\n1x Latte  $5.00\n1x Croissant  $7.50\nTOTAL $12.50"
-}
-```
-
-### Extracting from a PDF
-
-PDFs (single- or multi-page) work the same way - just set `document_mime_type` to `application/pdf`.
-
-<CodeGroup>
-
-```bash cURL
-DOCUMENT=$(base64 -b 0 -i contract.pdf)
-
-curl -X POST https://api.scaledown.xyz/extract \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <your-api-key>" \
-  -d '{
-    "document": "'"$DOCUMENT"'",
-    "document_mime_type": "application/pdf",
-    "entities": {
-      "party_name": "Name of a party to the contract",
-      "effective_date": "The date the contract takes effect",
-      "governing_law": "The jurisdiction or governing law clause"
-    }
-  }'
-```
-
-```python Python
-import base64
-import requests
-
-with open("contract.pdf", "rb") as f:
-    document = base64.b64encode(f.read()).decode()
-
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "document": document,
-        "document_mime_type": "application/pdf",
-        "entities": {
-            "party_name": "Name of a party to the contract",
-            "effective_date": "The date the contract takes effect",
-            "governing_law": "The jurisdiction or governing law clause",
-        },
-    },
-)
-print(response.json())
-```
-
-```typescript TypeScript
-import fs from "fs";
-
-const document = fs.readFileSync("contract.pdf").toString("base64");
-
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    document,
-    document_mime_type: "application/pdf",
-    entities: {
-      party_name: "Name of a party to the contract",
-      effective_date: "The date the contract takes effect",
-      governing_law: "The jurisdiction or governing law clause",
-    },
-  }),
-});
-const data = await response.json();
-```
-
-</CodeGroup>
-
----
-
-### Structured (nested) extraction
-
-For more complex documents, you can define nested schemas to extract structured objects or arrays of objects. Use a **nested object** to extract a single structured group of fields, or an **array of objects** to extract a repeated structure such as invoice line items.
-
-The full structured output is returned in the `structured_result` field. Scalar fields in the same request are also included there, alongside any nested values.
-
-**Nested object example - extract a single structured address:**
-
-<CodeGroup>
-
-```bash cURL
-curl -X POST https://api.scaledown.xyz/extract \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <your-api-key>" \
-  -d '{
-    "text": "Ship to: Jane Smith, 42 Maple Street, Springfield, IL 62701.",
-    "entities": {
-      "recipient": "The full name of the recipient",
-      "address": {
-        "street": "Street address including number",
-        "city": "City name",
-        "state": "Two-letter state code",
-        "zip": "ZIP or postal code"
+    "model": "extract",
+    "messages": [
+      {"role": "user", "content": "Acme Corp invoiced $500 on 2024-01-05."}
+    ],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "invoice",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "vendor": {"type": "string", "description": "company name"},
+            "amount": {"type": "string", "description": "dollar amount"},
+            "date":   {"type": "string", "description": "invoice date"}
+          }
+        }
       }
     }
   }'
 ```
 
 ```python Python
-import requests
-
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "Ship to: Jane Smith, 42 Maple Street, Springfield, IL 62701.",
-        "entities": {
-            "recipient": "The full name of the recipient",
-            "address": {
-                "street": "Street address including number",
-                "city": "City name",
-                "state": "Two-letter state code",
-                "zip": "ZIP or postal code",
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Acme Corp invoiced $500 on 2024-01-05."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "invoice",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "vendor": {"type": "string", "description": "company name"},
+                    "amount": {"type": "string", "description": "dollar amount"},
+                    "date": {"type": "string", "description": "invoice date"},
+                },
             },
         },
     },
 )
-print(response.json())
+result = json.loads(r.choices[0].message.content)
+print(result["entities"])
 ```
 
 ```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    text: "Ship to: Jane Smith, 42 Maple Street, Springfield, IL 62701.",
-    entities: {
-      recipient: "The full name of the recipient",
-      address: {
-        street: "Street address including number",
-        city: "City name",
-        state: "Two-letter state code",
-        zip: "ZIP or postal code",
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.scaledown.xyz/v1",
+  apiKey: "<your-api-key>",
+});
+
+const r = await client.chat.completions.create({
+  model: "extract",
+  messages: [{ role: "user", content: "Acme Corp invoiced $500 on 2024-01-05." }],
+  response_format: {
+    type: "json_schema",
+    json_schema: {
+      name: "invoice",
+      schema: {
+        type: "object",
+        properties: {
+          vendor: { type: "string", description: "company name" },
+          amount: { type: "string", description: "dollar amount" },
+          date: { type: "string", description: "invoice date" },
+        },
       },
     },
-  }),
+  },
 });
-const data = await response.json();
+const result = JSON.parse(r.choices[0].message.content!);
+console.log(result.entities);
 ```
 
 </CodeGroup>
 
-**Response:**
+The parsed `content` is:
 
 ```json
 {
   "entities": [
-    {
-      "text": "Jane Smith",
-      "type": "recipient",
-      "confidence": 1.0,
-      "start": 9,
-      "end": 19,
-      "context": "Ship to: Jane Smith, 42 Maple Street, Springfield, IL 62701."
-    }
+    {"text": "Acme Corp", "type": "vendor", "confidence": 0.97, "start": 0, "end": 9, "context": "Acme Corp invoiced $500 on 2024-01-05."},
+    {"text": "$500", "type": "amount", "confidence": 0.95, "start": 19, "end": 23, "context": "Acme Corp invoiced $500 on 2024-01-05."},
+    {"text": "2024-01-05", "type": "date", "confidence": 0.96, "start": 27, "end": 37, "context": "Acme Corp invoiced $500 on 2024-01-05."}
   ],
-  "structured_result": {
-    "recipient": "Jane Smith",
-    "address": {
-      "street": "42 Maple Street",
-      "city": "Springfield",
-      "state": "IL",
-      "zip": "62701"
-    }
-  },
+  "structured_result": null,
+  "input_tokens": 142,
   "ocr_text": null
 }
 ```
 
----
+### Extracting from an image or PDF (OCR)
 
-**Array schema example - extract invoice line items:**
+Extract has built-in OCR (AWS Textract). Pass a base64-encoded photo, scan, or PDF through `extra_body` and the text is recovered before extraction, so receipts, invoices, IDs, and scanned forms work without a separate OCR step. A message is still required; use a short placeholder user message. The raw OCR output is returned as `ocr_text`.
 
 <CodeGroup>
 
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/extract \
+DOCUMENT=$(base64 -b 0 -i receipt.jpg)
+
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "text": "Invoice: 1x Widget A @ $10.00, 3x Widget B @ $5.00, 1x Shipping @ $8.50",
-    "entities": {
-      "vendor": "The name of the vendor or supplier",
-      "line_items": [
-        {
-          "description": "Description or name of the line item",
-          "quantity": "Quantity ordered",
-          "unit_price": "Price per unit"
+    "model": "extract",
+    "messages": [{"role": "user", "content": "Extract the receipt fields."}],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "receipt",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "merchant": {"type": "string", "description": "store or merchant name"},
+            "total": {"type": "string", "description": "total amount paid"}
+          }
         }
-      ]
-    }
+      }
+    },
+    "document": "'"$DOCUMENT"'",
+    "document_mime_type": "image/jpeg"
   }'
 ```
 
 ```python Python
-import requests
+import base64
 
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "Invoice: 1x Widget A @ $10.00, 3x Widget B @ $5.00, 1x Shipping @ $8.50",
-        "entities": {
-            "vendor": "The name of the vendor or supplier",
-            "line_items": [
-                {
-                    "description": "Description or name of the line item",
-                    "quantity": "Quantity ordered",
-                    "unit_price": "Price per unit",
-                }
-            ],
+with open("receipt.jpg", "rb") as f:
+    document = base64.b64encode(f.read()).decode()
+
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Extract the receipt fields."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "receipt",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "merchant": {"type": "string", "description": "store or merchant name"},
+                    "total": {"type": "string", "description": "total amount paid"},
+                },
+            },
         },
     },
+    extra_body={"document": document, "document_mime_type": "image/jpeg"},
 )
-print(response.json())
-```
-
-```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    text: "Invoice: 1x Widget A @ $10.00, 3x Widget B @ $5.00, 1x Shipping @ $8.50",
-    entities: {
-      vendor: "The name of the vendor or supplier",
-      line_items: [
-        {
-          description: "Description or name of the line item",
-          quantity: "Quantity ordered",
-          unit_price: "Price per unit",
-        },
-      ],
-    },
-  }),
-});
-const data = await response.json();
+print(json.loads(r.choices[0].message.content)["entities"])
 ```
 
 </CodeGroup>
 
-**Response:**
+For a PDF, set `document_mime_type` to `"application/pdf"`; single-page and multi-page PDFs are both supported.
 
-```json
-{
-  "entities": [],
-  "structured_result": {
-    "vendor": null,
-    "line_items": [
-      { "description": "Widget A", "quantity": "1", "unit_price": "$10.00" },
-      { "description": "Widget B", "quantity": "3", "unit_price": "$5.00" },
-      { "description": "Shipping", "quantity": "1", "unit_price": "$8.50" }
-    ]
-  },
-  "ocr_text": null
-}
+### Structured (nested) extraction
+
+Use a nested object, or an array of objects for repeated structures such as line items. The full result is returned in `structured_result`, keyed by property name.
+
+<CodeGroup>
+
+```python Python
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Invoice 1042 from Acme Corp. 2 x Widget at $10.00, 1 x Gadget at $25.00."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "invoice",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "invoice_number": {"type": "string", "description": "invoice number"},
+                    "line_items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "product": {"type": "string", "description": "product name"},
+                                "quantity": {"type": "string", "description": "number of units"},
+                                "unit_price": {"type": "string", "description": "price per unit"},
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+)
+print(json.loads(r.choices[0].message.content)["structured_result"])
 ```
 
-When using array schemas, array fields appear only in `structured_result`. The `entities` array contains only scalar fields from the same request that could be matched to a span in the text.
+```bash cURL
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <your-api-key>" \
+  -d '{
+    "model": "extract",
+    "messages": [{"role": "user", "content": "Invoice 1042 from Acme Corp. 2 x Widget at $10.00, 1 x Gadget at $25.00."}],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "invoice",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "invoice_number": {"type": "string", "description": "invoice number"},
+            "line_items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "product": {"type": "string", "description": "product name"},
+                  "quantity": {"type": "string", "description": "number of units"},
+                  "unit_price": {"type": "string", "description": "price per unit"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }'
+```
+
+</CodeGroup>
 
 ---
 
@@ -586,124 +384,87 @@ When using array schemas, array fields appear only in `structured_result`. The `
 
 Some of the fields you want are not really *extraction* targets - they are **decisions**. "Is this account past due?" or "Is this an electric or gas meter?" have no verbatim span to pull; they require judging the text against a fixed set of options. The extraction model is tuned to copy spans out of the source, so it is a poor fit for these, and mixing them into an extraction call drags down accuracy for every key.
 
-To handle these, mark the key as a **classification key** by giving it a `labels` list. Any key whose object contains `labels` is split out of the extraction call and routed to our [classification model](/api-reference/classify) instead - a model purpose-built for categorical and boolean decisions, using constrained decoding over your labels with calibrated confidence scores. The rest of the request extracts as normal, and classified values are merged back into the same response so nothing changes on your side.
+To handle these, mark the key as a **classification key** by constraining it to a fixed list of labels. Any key constrained this way is split out of the extraction call and routed to our [classification model](/api-reference/classify) instead - a model purpose-built for categorical and boolean decisions, using constrained decoding over your labels with calibrated confidence scores. The rest of the request extracts as normal, and classified values are merged back into the same response so nothing changes on your side.
 
-Labels can be plain strings, or objects with a `name` and a `rubric` describing when that label applies. **Rubrics meaningfully improve accuracy** - prefer them over bare strings for anything non-obvious. An optional per-key `description` adds context about the decision.
+Each label has a name and, optionally, a `rubric` describing when that label applies. **Rubrics meaningfully improve accuracy** - prefer them over bare strings for anything non-obvious. An optional per-key `description` adds context about the decision.
+
+To mark a key as a classification key in a `response_format` schema, constrain the property to a fixed set of choices in one of two ways:
+
+- **`enum`** - the values are the labels; an optional `description` becomes the shared rubric.
+- **`oneOf` of `const` branches** - each branch's `description` is that label's rubric (per-label rubrics).
 
 <CodeGroup>
 
+```python Python
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "account",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "customer": {"type": "string", "description": "customer name"},
+                    "is_delinquent": {
+                        "oneOf": [
+                            {"const": "yes", "description": "balance is overdue"},
+                            {"const": "no", "description": "account is current"},
+                        ]
+                    },
+                    "meter_type": {
+                        "enum": ["electric", "gas", "water"],
+                        "description": "type of utility service",
+                    },
+                },
+            },
+        },
+    },
+)
+print(json.loads(r.choices[0].message.content)["entities"])
+```
+
 ```bash cURL
-curl -X POST https://api.scaledown.xyz/extract \
+curl -X POST https://api.scaledown.xyz/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "text": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line.",
-    "entities": {
-      "account_holder": "Full name of the account holder",
-      "is_delinquent": {
-        "description": "Whether the account is behind on payments",
-        "labels": [
-          { "name": "delinquent", "rubric": "Balance is past due, in collections, or 30+ days overdue" },
-          { "name": "current", "rubric": "Account is paid up to date, with no past-due balance" }
-        ]
-      },
-      "meter_type": {
-        "labels": ["electric", "gas"]
+    "model": "extract",
+    "messages": [{"role": "user", "content": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."}],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "account",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "customer": {"type": "string", "description": "customer name"},
+            "is_delinquent": {
+              "oneOf": [
+                {"const": "yes", "description": "balance is overdue"},
+                {"const": "no", "description": "account is current"}
+              ]
+            },
+            "meter_type": {
+              "enum": ["electric", "gas", "water"],
+              "description": "type of utility service"
+            }
+          }
+        }
       }
     }
   }'
 ```
 
-```python Python
-import requests
-
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line.",
-        "entities": {
-            "account_holder": "Full name of the account holder",
-            "is_delinquent": {
-                "description": "Whether the account is behind on payments",
-                "labels": [
-                    {"name": "delinquent", "rubric": "Balance is past due, in collections, or 30+ days overdue"},
-                    {"name": "current", "rubric": "Account is paid up to date, with no past-due balance"},
-                ],
-            },
-            "meter_type": {"labels": ["electric", "gas"]},
-        },
-    },
-)
-print(response.json())
-```
-
-```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    text: "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line.",
-    entities: {
-      account_holder: "Full name of the account holder",
-      is_delinquent: {
-        description: "Whether the account is behind on payments",
-        labels: [
-          { name: "delinquent", rubric: "Balance is past due, in collections, or 30+ days overdue" },
-          { name: "current", rubric: "Account is paid up to date, with no past-due balance" },
-        ],
-      },
-      meter_type: { labels: ["electric", "gas"] },
-    },
-  }),
-});
-const data = await response.json();
-```
-
 </CodeGroup>
 
-**Response:**
-
-```json
-{
-  "entities": [
-    {
-      "text": "Jane Doe",
-      "type": "account_holder",
-      "confidence": 1.0,
-      "start": 12,
-      "end": 20,
-      "context": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."
-    },
-    {
-      "text": "delinquent",
-      "type": "is_delinquent",
-      "confidence": 0.94,
-      "start": 33,
-      "end": 49,
-      "context": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."
-    },
-    {
-      "text": "gas",
-      "type": "meter_type",
-      "confidence": 0.88,
-      "start": 60,
-      "end": 76,
-      "context": "Account for Jane Doe. Balance is 90 days past due. Service: natural gas line."
-    }
-  ],
-  "structured_result": null,
-  "ocr_text": null
-}
-```
+Alternatively, with the flat `entities` body, send `{"is_delinquent": {"labels": [{"name": "yes", "rubric": "balance is overdue"}, ...]}}`.
 
 The classified value is returned as the entity `text`, and `confidence` is the calibrated probability of the chosen label. The label itself is usually not a verbatim span in the source (it was inferred), so `start`/`end` and `context` instead point at the **evidence** the model used for the decision - here, `"90 days past due"` for `is_delinquent`, not the word "delinquent". If no relevant evidence is found, `start`/`end` fall back to `0` and `context` is empty. In a [structured (nested)](#structured-nested-extraction) request, classified values also appear in `structured_result` under their key.
 
 <Note>
-  A classification key still counts as part of your single `/extract` call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 26 labels; outside that range the request returns `422`.
+  A classification key still counts as part of your single extract call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 26 labels; outside that range the request returns `422`.
 </Note>
 
 <Tip>
@@ -714,75 +475,29 @@ The classified value is returned as the entity `text`, and `confidence` is the c
 
 ### With per-entity overrides
 
-Use per-entity `threshold` and `top_n` when different entity types need different precision, or when you only want the single best match for a given type.
-
-<CodeGroup>
-
-```bash cURL
-curl -X POST https://api.scaledown.xyz/extract \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <your-api-key>" \
-  -d '{
-    "text": "...",
-    "entities": {
-      "Name": {
-        "description": "Full name of a person",
-        "threshold": 0.3,
-        "top_n": 1
-      },
-      "Company": {
-        "description": "Company or organization name",
-        "threshold": 0.7
-      },
-      "Email": "Email address"
-    },
-    "threshold": 0.5,
-    "top_n": 5
-  }'
-```
+Add `threshold` and `top_n` annotations to a property when different entity types need different precision, or when you only want the single best match for a given type. Global values go in `extra_body`.
 
 ```python Python
-import requests
-
-response = requests.post(
-    "https://api.scaledown.xyz/extract",
-    headers={"x-api-key": "<your-api-key>"},
-    json={
-        "text": "...",
-        "entities": {
-            "Name": {"description": "Full name of a person", "threshold": 0.3, "top_n": 1},
-            "Company": {"description": "Company or organization name", "threshold": 0.7},
-            "Email": "Email address",
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Contact Jane Doe (jane@acme.com) or John Smith (john@globex.com)."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "contacts",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "Name": {"type": "string", "description": "person name", "threshold": 0.3, "top_n": 1},
+                    "Company": {"type": "string", "description": "company name", "threshold": 0.7},
+                    "Email": {"type": "string", "description": "email address"},
+                },
+            },
         },
-        "threshold": 0.5,
-        "top_n": 5,
     },
+    extra_body={"threshold": 0.5, "top_n": 5},
 )
-print(response.json())
 ```
-
-```typescript TypeScript
-const response = await fetch("https://api.scaledown.xyz/extract", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "<your-api-key>",
-  },
-  body: JSON.stringify({
-    text: "...",
-    entities: {
-      Name: { description: "Full name of a person", threshold: 0.3, top_n: 1 },
-      Company: { description: "Company or organization name", threshold: 0.7 },
-      Email: "Email address",
-    },
-    threshold: 0.5,
-    top_n: 5,
-  }),
-});
-const data = await response.json();
-```
-
-</CodeGroup>
 
 In this example:
 - `Name` uses threshold `0.3` and returns at most 1 result
@@ -814,9 +529,11 @@ The entity name and description are both used as part of the model's search crit
 
 ## Notes
 
+- `GET /v1/models` lists `extract` and `extract-1`. The bare name always points at the latest version; use `extract-1` to pin.
+- Streaming is not supported; the full result is returned in one response.
 - Results within each entity type are ranked by confidence descending before `top_n` is applied.
 - The `context` field is always derived from the original `text` input - it is not generated by the model.
 - Character offsets (`start`, `end`) refer to byte positions in the original `text` string.
 - There is no fixed limit on the number of entity types you can define in a single request.
-- [Classification keys](#classification-keys) (any entity object with a `labels` list) are routed to the classification model rather than extracted. Use them for boolean or categorical fields - keeping them out of the extraction path improves accuracy for both.
+- [Classification keys](#classification-keys) (any property constrained to a fixed set of choices) are routed to the classification model rather than extracted. Use them for boolean or categorical fields - keeping them out of the extraction path improves accuracy for both.
 - `threshold` and `top_n` do not apply to classification keys - the value is a single chosen label, always returned.

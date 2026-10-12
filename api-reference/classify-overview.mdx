@@ -1,7 +1,22 @@
 ---
-title: "Overview"
-description: "Score text against user-defined labels and get a probability distribution over those labels."
+title: "Classify overview"
+sidebarTitle: "Overview"
+description: "Score text against labels you define. Use the custom /classify API for labels with rubrics, or the Jev-compatible Decisions API for typed questions."
 ---
+
+## Two ways to classify
+
+Classify is one model (`classify`, or `classify-1` to pin version 1) with two APIs. Pick based on the request shape you want to send.
+
+| | Custom ScaleDown API | Decisions API (Jev-compatible) |
+|---|---|---|
+| Endpoint | [`POST /classify`](/api-reference/classify) | [`POST /v1/scaledown`](/api-reference/decisions) |
+| You send | Text plus a list of `labels`, each with a `rubric` | A `state` plus named `questions` of type `choice`, `noul` or `score` |
+| You get | A probability per label and a `top_label` | One typed answer per question |
+| Best for | Routing, tagging and moderation where you write the rubrics | Porting an existing Jev integration, or asking several different questions about one item at once |
+| Extras | Batching (`chunks`), multi-label, image input, `reasoning` | Same request and response shape as Jev |
+
+If you are not migrating from Jev, start with `/classify`. The Decisions API runs on the same scoring model, as a thinner layer over `/classify`.
 
 ## What it does
 

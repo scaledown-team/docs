@@ -1,7 +1,8 @@
 ---
-title: "Decisions"
+title: "Decisions API"
+sidebarTitle: "Decisions API"
 openapi: "POST /v1/scaledown"
-description: "Jev (TypeSafe)-compatible endpoint: answer typed choice/noul/score questions against a shared state object."
+description: "POST /v1/scaledown - Jev-compatible request and response. Send a state and a set of typed questions, get one answer per question."
 ---
 
 ## Overview
@@ -11,7 +12,7 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
 ## Request
 
 <ParamField body="model" type="string" default="classify-1">
-  Optional. The only supported value is `"classify-1"`, which is also the default when omitted. Any other value is rejected with `422`.
+  Optional. `"classify"` (always the latest version) or `"classify-1"` (pinned to version 1). Defaults to `"classify-1"` when omitted. Any other value is rejected with `422`.
 </ParamField>
 
 <ParamField body="state" type="object | string" required>
@@ -77,7 +78,7 @@ The `/v1/scaledown` endpoint mirrors [TypeSafe's Jev Decisions API](https://open
 ## Response
 
 <ResponseField name="model" type="string">
-  Always `"classify-1"`.
+  Echoes the `model` you sent (`"classify"` or `"classify-1"`; `"classify-1"` if omitted).
 </ResponseField>
 
 <ResponseField name="answers" type="object">
@@ -540,7 +541,7 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
 
 ## Notes
 
-- `"classify-1"` is the only supported `model`. Omit it (defaults to `"classify-1"`) or pass it explicitly - any other value is rejected with `422`.
+- `"classify"` and `"classify-1"` are the only supported `model` values. Omit it (defaults to `"classify-1"`) or pass either explicitly - any other value is rejected with `422`.
 - Every question in a request - `choice`, `noul`, or `score` - is one separate calibrated model call, run concurrently. `usage` is the sum across all of them - a request with a `choice`, a `noul`, and a `score` question makes 3 calls and bills for all 3.
 - `score`'s `criteria` is an **ordered array** (2-10 levels), unlike `choice`'s unordered `{key: description}` map - the array position is the level index.
 - No `reasoning` field exists on this endpoint - it never generates a free-form explanation, unlike `/classify` with `reasoning: true`.
