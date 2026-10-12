@@ -30,43 +30,41 @@
             ]
           },
           {
-            "group": "Compress",
-            "icon": "compress",
+            "group": "Models",
+            "icon": "cube",
             "pages": [
-              "api-reference/compress-overview",
-              "api-reference/integrate-compress"
-            ]
-          },
-          {
-            "group": "Summarize",
-            "icon": "align-left",
-            "pages": [
-              "api-reference/summarize-overview",
-              "api-reference/integrate-summarize"
-            ]
-          },
-          {
-            "group": "Extract",
-            "icon": "magnifying-glass",
-            "pages": [
-              "api-reference/extract-overview",
-              "api-reference/integrate-extract"
-            ]
-          },
-          {
-            "group": "Classify",
-            "icon": "tags",
-            "pages": [
-              "api-reference/classify-overview",
-              "api-reference/integrate-classify"
-            ]
-          },
-          {
-            "group": "Benchmarks",
-            "icon": "chart-line",
-            "pages": [
-              "benchmarks/overview",
-              "benchmarks/providers"
+              {
+                "group": "Compress",
+                "icon": "compress",
+                "pages": [
+                  "api-reference/compress-overview",
+                  "api-reference/integrate-compress"
+                ]
+              },
+              {
+                "group": "Summarize",
+                "icon": "align-left",
+                "pages": [
+                  "api-reference/summarize-overview",
+                  "api-reference/integrate-summarize"
+                ]
+              },
+              {
+                "group": "Extract",
+                "icon": "magnifying-glass",
+                "pages": [
+                  "api-reference/extract-overview",
+                  "api-reference/integrate-extract"
+                ]
+              },
+              {
+                "group": "Classify",
+                "icon": "tags",
+                "pages": [
+                  "api-reference/classify-overview",
+                  "api-reference/integrate-classify"
+                ]
+              }
             ]
           },
           {
@@ -86,19 +84,31 @@
             ]
           },
           {
-            "group": "DietCode",
-            "icon": "terminal",
+            "group": "Benchmarks",
+            "icon": "chart-line",
             "pages": [
-              "dietcode/overview",
-              "dietcode/install"
+              "benchmarks/overview",
+              "benchmarks/providers"
             ]
           },
           {
-            "group": "ScaleDown Agent",
-            "icon": "robot",
+            "group": "Developer Tools",
+            "icon": "terminal",
             "pages": [
-              "slm-agent/overview",
-              "slm-agent/install"
+              {
+                "group": "DietCode",
+                "pages": [
+                  "dietcode/overview",
+                  "dietcode/install"
+                ]
+              },
+              {
+                "group": "ScaleDown Agent",
+                "pages": [
+                  "slm-agent/overview",
+                  "slm-agent/install"
+                ]
+              }
             ]
           },
           {
