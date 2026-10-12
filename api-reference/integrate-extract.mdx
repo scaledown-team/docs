@@ -27,7 +27,9 @@ API details:
       "entities": {
         "<EntityTypeName>": "<plain English description of what to look for>"
         // values can also be nested objects or arrays - see structured extraction below
-      }
+      },
+      "threshold": 0,   // optional global confidence cutoff, default 0 (keep all)
+      "top_n": 0        // optional global max results per type, default 0 (unlimited)
     }
   Either "text" or "document" must be provided. If both are given, OCR text is appended
   after the plain text before extraction. The keys in "entities" are names you choose
@@ -88,7 +90,11 @@ API details:
       "instruction": "<optional global instruction>",     // optional; prepended before the text
       "entities": {
         "<TypeName>": "<description string>"
-          | { "description": "<what to look for>" }
+          | {
+              "description": "<what to look for>",
+              "threshold": 0.0–1.0,  // optional, overrides global threshold for this type
+              "top_n": number        // optional, max results for this type; 0 = unlimited
+            }
           | { "<field>": "<description>", ... }           // nested object schema
           | [{ "<field>": "<description>", ... }]         // array-of-objects schema
           | {                                             // classification key
@@ -126,7 +132,8 @@ API details:
     }
   Scalar entity results are in "entities"; nested object and array results are in
   "structured_result". Every match of a scalar type is returned as its own entity,
-  in order of appearance.
+  in order of appearance; threshold drops entities below that confidence and top_n
+  keeps the N most confident per type.
 - Error responses: 422 (malformed body, neither text nor document, or OCR failure),
   500 (server error), 504 (timeout)
 
@@ -138,9 +145,10 @@ Apply these programming principles:
 
 2. TypeScript interfaces - Define the following:
      EntityDefinition: string
-       | { description: string }
+       | { description: string; threshold?: number; top_n?: number }
        | Record<string, unknown>
        | Array<Record<string, unknown>>
+     ExtractOptions: { threshold?: number; top_n?: number }
      ExtractedEntity: { text: string; type: string; confidence: number;
                         start: number; end: number; context: string }
      ExtractResult: {
@@ -160,7 +168,8 @@ Apply these programming principles:
          document?: string;
          document_mime_type?: string;
          entities: Record<string, EntityDefinition>;
-       }
+       },
+       options?: ExtractOptions
      ): Promise<ExtractResult>
    No global state; the API key is stored as a private readonly field.
 
@@ -190,8 +199,10 @@ ScaleDown API details:
       "document_mime_type": "image/jpeg",           // required when document is set
       "entities": {
         "<TypeName>": "<description string>"
-          | { "description": str }
-      }
+          | { "description": str, "threshold": float, "top_n": int }
+      },
+      "threshold": 0,   // optional, global confidence cutoff, default 0 (keep all)
+      "top_n": 0        // optional, max results per type, 0 = unlimited, default 0
     }
   Either "text" or "document" must be provided.
 - Success response (JSON):
@@ -222,7 +233,9 @@ Requirements:
        "text": str,                         // optional if document is provided
        "document": str,                     // optional base64-encoded file
        "document_mime_type": str,           // required when document is set
-       "entities": { "TypeName": "desc" }   // required
+       "entities": { "TypeName": "desc" },  // required
+       "threshold": float,                  // optional, default 0
+       "top_n": int                         // optional, default 0
      }
    Parse it with json.loads; return a JSON error string if parsing fails.
 
@@ -254,7 +267,12 @@ The production-ready prompt instructs the AI to apply six programming principles
 ```typescript
 type EntityDefinition =
   | string
-  | { description: string };
+  | { description: string; threshold?: number; top_n?: number };
+
+interface ExtractOptions {
+  threshold?: number;
+  top_n?: number;
+}
 
 interface ExtractedEntity {
   text: string;
@@ -293,9 +311,10 @@ class ScaleDownExtractClient {
 
   async extract(
     text: string,
-    entitySchema: Record<string, EntityDefinition>
+    entitySchema: Record<string, EntityDefinition>,
+    options?: ExtractOptions
   ): Promise<ExtractResult> {
-    const body = { text, entities: entitySchema };
+    const body = { text, entities: entitySchema, ...options };
     const retryDelays = [2000, 4000, 8000];
     let lastError: ScaleDownError | undefined;
 
@@ -342,8 +361,9 @@ const result = await client.extract(
   "Henry Wang is a CS student from the SF Bay Area. Twitter: @henryw",
   {
     Name: "Full name of the person",
-    Twitter: { description: "Twitter or X handle" },
-  }
+    Twitter: { description: "Twitter or X handle", threshold: 0.8, top_n: 1 },
+  },
+  { threshold: 0.5 }
 );
 
 for (const entity of result.entities) {

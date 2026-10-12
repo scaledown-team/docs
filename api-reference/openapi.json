@@ -125,11 +125,23 @@
                         {
                           "type": "object",
                           "properties": {
-                            "description": { "type": "string" }
+                            "description": { "type": "string" },
+                            "threshold": { "type": "number" },
+                            "top_n": { "type": "number" }
                           }
                         }
                       ]
                     }
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Global confidence threshold (0–1). Entities below it are dropped; 0 keeps all."
+                  },
+                  "top_n": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Global limit on results per entity type (most confident kept). 0 returns all."
                   }
                 }
               }
