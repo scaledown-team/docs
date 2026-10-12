@@ -5,6 +5,8 @@ description: "Call extract, classify, and summarize synchronously through an Ope
 
 ## Overview
 
+The base URL is `https://api.scaledown.xyz/v1` (note `.xyz`; `api.scaledown.ai` is not an API host). `GET /v1/models` lists `compress`, `extract`, `classify` and `summarize`, each with a `context_length` of 1,000,000 tokens.
+
 The `extract`, `summarize`, and `classify` operations are available through a
 standard OpenAI-compatible `POST /v1/chat/completions` endpoint. Select the
 operation with the `model` field — exactly as the [Batch API](/api-reference/batch)
@@ -65,7 +67,7 @@ import json
 print(json.loads(r.choices[0].message.content)["summary"])
 ```
 
-`max_tokens` is honored as the standard OpenAI field.
+`max_tokens` is honored as the standard OpenAI field for `summarize`, but is capped at 200 (the default). If a summary is cut off, the JSON result has `finish_reason: "length"` and a `notice`; for a higher limit, email neal@scaledown.ai.
 
 ---
 

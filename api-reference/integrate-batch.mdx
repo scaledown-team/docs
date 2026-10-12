@@ -31,7 +31,7 @@ Submit batch — POST https://api.scaledown.xyz/v1/batches
     }
 
   model="summarize" body fields:
-    { "text": "<text>", "instructions": "<optional>", "max_tokens": 20048 }
+    { "text": "<text>", "instructions": "<optional>", "max_tokens": 200 }
 
   model="extract" body fields:
     {
@@ -105,7 +105,7 @@ Submit batch — POST https://api.scaledown.xyz/v1/batches
       "body": { "model": "summarize"|"extract"|"classify", ...model fields... }
     }
 
-  model="summarize" → body fields: text (str), instructions (str, optional), max_tokens (int, default 20048)
+  model="summarize" → body fields: text (str), instructions (str, optional), max_tokens (int, default 200)
   model="extract"   → body fields: text (str), entities (dict[str, str]), instruction (str, optional)
   model="classify"  → body fields: text (str), labels (list[{"name": str, "rubric": str}]), system_prompt (str, optional)
 
@@ -232,7 +232,7 @@ class SummarizeItem:
     custom_id: str
     text: str
     instructions: str | None = None
-    max_tokens: int = 20048
+    max_tokens: int = 200
 
 @dataclass
 class ExtractItem:

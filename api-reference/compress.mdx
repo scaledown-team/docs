@@ -23,7 +23,7 @@ The `/compress/raw/` endpoint compresses your prompt and context, reducing token
 
   <Expandable title="scaledown fields">
     <ParamField body="rate" type="string | number" required>
-      Compression aggressiveness. Use `"auto"` to let ScaleDown pick the optimal rate based on content, or pass a number between `0` and `1` to set a fixed target ratio (e.g. `0.5` = compress to 50% of original tokens).
+      Compression aggressiveness. Use `"auto"` to let ScaleDown pick the optimal rate based on content, or pass a number between `0` and `1` for the fraction of tokens to remove (e.g. `0.5` removes about 50% of the original tokens, keeping about 50%; `0.8` keeps about 20%). The kept amount is approximate because compression works on whole passages.
     </ParamField>
   </Expandable>
 </ParamField>
@@ -156,7 +156,7 @@ const data = await response.json();
 
 ### Fixed compression rate
 
-Pass a number for `rate` when you need a guaranteed token budget.
+Pass a number for `rate` when you want a fixed level of compression. `rate` is the fraction of tokens to remove, so higher values compress more: `0.4` removes about 40% and keeps about 60%. The result is approximate, not an exact token budget.
 
 <CodeGroup>
 
