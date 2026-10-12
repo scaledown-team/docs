@@ -102,6 +102,54 @@ r = client.chat.completions.create(
 The parsed `message.content` matches the `/extract` response
 (`{"entities": [...], "structured_result": {...}, "input_tokens": ...}`).
 
+### Multiple matches and limits
+
+Extract behaves exactly like the native [`/extract`](/api-reference/extract)
+endpoint, because it runs the same code. A scalar (`string`) property returns
+**every** match in the text as its own entry in `entities`, in order of
+appearance, each with a `confidence` (the probability the model assigned to that
+exact text). Nothing is filtered unless you ask:
+
+- **`threshold`** (0–1, default `0`): drop entities whose `confidence` is below it.
+- **`top_n`** (default `0` = all): keep only the N most confident entities per type.
+
+Pass them as request-level fields via the SDK's `extra_body`:
+
+```python
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Alice, Bob and Carol met in Paris."}],
+    response_format={...},                      # as above
+    extra_body={"threshold": 0.5, "top_n": 2},
+)
+```
+
+To set them for a single field, add `threshold` and/or `top_n` as extra keywords
+on that property in the schema (JSON Schema ignores unknown keywords):
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "person": {"type": "string", "description": "a person's full name", "top_n": 1},
+    "city":   {"type": "string", "description": "a city", "threshold": 0.8}
+  }
+}
+```
+
+Per-property values override the request-level ones. `threshold` and `top_n` apply
+to scalar properties only, not to nested objects, arrays, or classification
+properties (`enum` / `oneOf`), which are returned in `structured_result` as before.
+
+### Arrays
+
+A property typed as an `array` (of strings or of objects) is returned as-is in
+`structured_result`, a plain list of strings or of objects, not a list of lists.
+Scalar and array properties can be mixed in one schema. Note that in a request that
+contains any array or nested-object property, scalar properties return a single
+value each, as before; use a request with only scalar properties (or declare the
+property as an `array`) when you want every match.
+
 ### Classification within extract
 
 `extract` can also classify a field against a fixed set of labels in the same
