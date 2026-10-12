@@ -150,13 +150,13 @@
                   },
                   "threshold": {
                     "type": "number",
-                    "default": 0.5,
-                    "description": "Global confidence threshold (0–1)."
+                    "default": 0,
+                    "description": "Global confidence threshold (0–1). Entities below it are dropped; 0 keeps all."
                   },
                   "top_n": {
                     "type": "number",
                     "default": 0,
-                    "description": "Global limit on results per entity type. 0 returns all above threshold."
+                    "description": "Global limit on results per entity type (most confident kept). 0 returns all."
                   }
                 }
               }

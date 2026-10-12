@@ -27,7 +27,9 @@ API details:
       "entities": {
         "<EntityTypeName>": "<plain English description of what to look for>"
         // values can also be nested objects or arrays - see structured extraction below
-      }
+      },
+      "threshold": 0,   // optional global confidence cutoff, default 0 (keep all)
+      "top_n": 0        // optional global max results per type, default 0 (unlimited)
     }
   Either "text" or "document" must be provided. If both are given, OCR text is appended
   after the plain text before extraction. The keys in "entities" are names you choose
@@ -99,9 +101,7 @@ API details:
               "labels": [ "<label>" | { "name": "<label>", "rubric": "<when it applies>" }, ... ],  // 2–26 labels
               "description": "<optional context for the decision>"  // optional
             }
-      },
-      "threshold": 0.5,  // optional global confidence cutoff, default 0.5
-      "top_n": 0         // optional global max results per type, default 0 (unlimited)
+      }
     }
   Either "text" or "document" must be provided. If both are given, the OCR text is
   appended after the plain text before extraction. The optional "instruction" field is
@@ -131,8 +131,9 @@ API details:
       "ocr_text": "<raw OCR text>" | null
     }
   Scalar entity results are in "entities"; nested object and array results are in
-  "structured_result". Results within each scalar type are ranked by confidence
-  descending before top_n is applied.
+  "structured_result". Each distinct value of a scalar type is returned as its own entity
+  (up to 10 per type), in order of first appearance; threshold drops entities below that confidence and top_n
+  keeps the N most confident per type.
 - Error responses: 422 (malformed body, neither text nor document, or OCR failure),
   500 (server error), 504 (timeout)
 
@@ -200,8 +201,8 @@ ScaleDown API details:
         "<TypeName>": "<description string>"
           | { "description": str, "threshold": float, "top_n": int }
       },
-      "threshold": 0.5,  // optional, global confidence cutoff, default 0.5
-      "top_n": 0         // optional, max results per type, 0 = unlimited, default 0
+      "threshold": 0,   // optional, global confidence cutoff, default 0 (keep all)
+      "top_n": 0        // optional, max results per type, 0 = unlimited, default 0
     }
   Either "text" or "document" must be provided.
 - Success response (JSON):
@@ -233,7 +234,7 @@ Requirements:
        "document": str,                     // optional base64-encoded file
        "document_mime_type": str,           // required when document is set
        "entities": { "TypeName": "desc" },  // required
-       "threshold": float,                  // optional, default 0.5
+       "threshold": float,                  // optional, default 0
        "top_n": int                         // optional, default 0
      }
    Parse it with json.loads; return a JSON error string if parsing fails.
