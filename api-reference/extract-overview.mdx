@@ -15,7 +15,7 @@ This makes it practical to extract domain-specific entities that generic NER mod
 
 **Your entity types don't fit standard NER.** Off-the-shelf NER handles names, locations, and organizations. Extract handles whatever you define - lease terms, part numbers, clinical findings, competitor mentions, or any other domain-specific concept.
 
-**You need confidence scores.** Extract returns a confidence score for every result. You can set per-entity thresholds to filter out low-confidence hits, or use the scores to route extractions to a human review queue.
+**You need confidence scores.** Extract returns a confidence score for every result. Set a `threshold` (globally or per entity type) to drop low-confidence hits, or use the scores to route extractions to a human review queue.
 
 **You want context alongside every result.** Every extracted span comes with 500 characters of surrounding text on each side, so you can verify the extraction in context without going back to the source document.
 

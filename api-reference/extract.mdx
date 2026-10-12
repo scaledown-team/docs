@@ -26,7 +26,7 @@ POST https://api.scaledown.xyz/v1/chat/completions
 <ParamField body="response_format" type="object" required>
   Defines what to extract. Must be `{ "type": "json_schema", "json_schema": { "name": "...", "schema": {...} } }`. Each property of `schema.properties` is an entity type:
 
-  - A **scalar property** (`string`, `number`, `integer`, `boolean`) - its `description` says what to look for
+  - A **scalar property** (`string`, `number`, `integer`, `boolean`) - its `description` says what to look for. Each distinct value found in the text is returned as its own entity (up to 10 per type)
   - A **nested object** (`type: "object"` with `properties`) - a structured sub-schema
   - An **array of objects** (`type: "array"` with object `items`) - a repeated structure, such as line items
   - A **classification key** - a property with an `enum`, or a `oneOf` of `const` branches, routed to the classifier (see [Classification keys](#classification-keys))
@@ -34,12 +34,12 @@ POST https://api.scaledown.xyz/v1/chat/completions
   Per-property `threshold` (0-1) and `top_n` annotations override the global values for that entity type only. `$ref` and `$defs` are not supported; inline your schema. Alternatively, send a flat top-level `entities` object instead of `response_format` (see below).
 </ParamField>
 
-<ParamField body="threshold" type="number" default={0.5}>
-  Non-standard extension, passed with the SDK's `extra_body`. Global confidence threshold (0-1). Entities below this score are filtered out. Can be overridden per entity type.
+<ParamField body="threshold" type="number" default={0}>
+  Non-standard extension, passed with the SDK's `extra_body`. Global confidence threshold (0-1). Extracted entities whose `confidence` is below it are dropped. `0` (default) keeps everything. Can be overridden per entity type. Does not apply to nested/array schemas or classification keys.
 </ParamField>
 
 <ParamField body="top_n" type="number" default={0}>
-  Non-standard extension, passed with `extra_body`. Global limit on how many results to return per entity type, ranked by confidence descending. `0` returns all results above the threshold. Can be overridden per entity type.
+  Non-standard extension, passed with `extra_body`. Global limit on how many entities to return per entity type, keeping the most confident. `0` (default) returns all matches. Results are still returned in order of appearance in the text. Can be overridden per entity type.
 </ParamField>
 
 <ParamField body="context_chars" type="number" default={500}>
@@ -75,7 +75,7 @@ A standard `chat.completion`. The extraction result is a **JSON string** in `cho
 
   <Expandable title="Parsed content">
     <ResponseField name="entities" type="array">
-      List of extracted scalar entities, sorted by confidence descending within each type. For nested or array entity types, values appear in `structured_result` instead.
+      List of extracted scalar entities. Each distinct value is returned as its own entry (at most 10 per entity type), grouped by entity type and in order of first appearance in the text. For nested or array entity types, values appear in `structured_result` instead.
 
       <Expandable title="Entity object">
         <ResponseField name="text" type="string">
@@ -85,7 +85,7 @@ A standard `chat.completion`. The extraction result is a **JSON string** in `cho
           The entity type name, matching a property name from your schema.
         </ResponseField>
         <ResponseField name="confidence" type="number">
-          Model confidence score between 0 and 1. For [classification keys](#classification-keys), this is the calibrated probability of the chosen label.
+          Between 0 and 1. For extracted entities, the probability the model assigned to this exact text. For [classification keys](#classification-keys), this is the calibrated probability of the chosen label.
         </ResponseField>
         <ResponseField name="start" type="number">
           Character offset of the start of the entity in the input text.
@@ -119,7 +119,7 @@ A standard `chat.completion`. The extraction result is a **JSON string** in `cho
 |--------|---------|
 | `400 Bad Request` | No input text, `response_format` missing or not `json_schema`, a schema with no properties, or a `$ref`/`$defs` in the schema. |
 | `402 Payment Required` | Insufficient credits. |
-| `422 Unprocessable Entity` | Malformed request body, a classification key with fewer than 2 or more than 26 labels, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, a classification key with fewer than 2 or more than 20 labels, or OCR failed. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Extraction request timed out. |
 
@@ -464,7 +464,7 @@ Alternatively, with the flat `entities` body, send `{"is_delinquent": {"labels":
 The classified value is returned as the entity `text`, and `confidence` is the calibrated probability of the chosen label. The label itself is usually not a verbatim span in the source (it was inferred), so `start`/`end` and `context` instead point at the **evidence** the model used for the decision - here, `"90 days past due"` for `is_delinquent`, not the word "delinquent". If no relevant evidence is found, `start`/`end` fall back to `0` and `context` is empty. In a [structured (nested)](#structured-nested-extraction) request, classified values also appear in `structured_result` under their key.
 
 <Note>
-  A classification key still counts as part of your single extract call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 26 labels; outside that range the request returns `422`.
+  A classification key still counts as part of your single extract call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 20 labels; outside that range the request returns `422`.
 </Note>
 
 <Tip>
@@ -473,36 +473,55 @@ The classified value is returned as the entity `text`, and `confidence` is the c
 
 ---
 
-### With per-entity overrides
+### Multiple matches, with limits
 
-Add `threshold` and `top_n` annotations to a property when different entity types need different precision, or when you only want the single best match for a given type. Global values go in `extra_body`.
+A scalar property returns each **distinct** value found in the text, one entity per value, in order of first appearance, up to 10 per entity type. A value that occurs several times is returned once (at its first occurrence). You do not need to ask for a list.
 
 ```python Python
 r = client.chat.completions.create(
     model="extract",
-    messages=[{"role": "user", "content": "Contact Jane Doe (jane@acme.com) or John Smith (john@globex.com)."}],
+    messages=[{"role": "user", "content": "Alice Johnson, Bob Martinez and Carol Nguyen flew from Paris to London."}],
     response_format={
         "type": "json_schema",
         "json_schema": {
-            "name": "contacts",
+            "name": "trip",
             "schema": {
                 "type": "object",
                 "properties": {
-                    "Name": {"type": "string", "description": "person name", "threshold": 0.3, "top_n": 1},
-                    "Company": {"type": "string", "description": "company name", "threshold": 0.7},
-                    "Email": {"type": "string", "description": "email address"},
+                    "person": {"type": "string", "description": "Full name of a person"},
+                    "city": {"type": "string", "description": "Name of a city"},
                 },
             },
         },
     },
-    extra_body={"threshold": 0.5, "top_n": 5},
+)
+print(json.loads(r.choices[0].message.content)["entities"])
+```
+
+This returns three `person` entities (Alice Johnson, Bob Martinez, Carol Nguyen) and two `city` entities (Paris, London). Every entity has a `confidence`. Use `threshold` and `top_n` to filter on it. Set them for the whole request through `extra_body`, and override them per property with extra keywords on that property:
+
+```python Python
+r = client.chat.completions.create(
+    model="extract",
+    messages=[{"role": "user", "content": "Alice Johnson, Bob Martinez and Carol Nguyen flew from Paris to London."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "trip",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "person": {"type": "string", "description": "Full name of a person", "top_n": 1},
+                    "city": {"type": "string", "description": "Name of a city"},
+                },
+            },
+        },
+    },
+    extra_body={"threshold": 0.5},
 )
 ```
 
-In this example:
-- `Name` uses threshold `0.3` and returns at most 1 result
-- `Company` uses threshold `0.7` and returns up to 5 results (global `top_n`)
-- `Email` uses the global threshold `0.5` and returns up to 5 results
+Here `person` returns only its single most confident match, and every entity below `0.5` confidence is dropped. Per-property values override the request-level ones.
 
 ## Writing good entity labels
 
@@ -531,9 +550,11 @@ The entity name and description are both used as part of the model's search crit
 
 - `GET /v1/models` lists `extract` and `extract-1`. The bare name always points at the latest version; use `extract-1` to pin.
 - Streaming is not supported; the full result is returned in one response.
-- Results within each entity type are ranked by confidence descending before `top_n` is applied.
+- Scalar properties return at most 10 distinct values each. Nested and array definitions are bounded at 200 items.
+- Results are grouped by entity type and returned in order of appearance in the text. `top_n` selects the most confident entities but does not reorder them.
+- Array properties are returned in `structured_result` as a plain list (strings or objects), not a list of lists. If a request contains any array or nested-object property, its scalar properties return a single value each; send them in a separate request (or declare them as arrays) to get every match.
+- `threshold` and `top_n` apply to extracted scalar entities only. A classification key always returns a single chosen label.
 - The `context` field is always derived from the original `text` input - it is not generated by the model.
 - Character offsets (`start`, `end`) refer to byte positions in the original `text` string.
 - There is no fixed limit on the number of entity types you can define in a single request.
 - [Classification keys](#classification-keys) (any property constrained to a fixed set of choices) are routed to the classification model rather than extracted. Use them for boolean or categorical fields - keeping them out of the extraction path improves accuracy for both.
-- `threshold` and `top_n` do not apply to classification keys - the value is a single chosen label, always returned.

@@ -142,10 +142,10 @@ by the American Arbitration Association in Wilmington, Delaware.
     )
 
     result = response.json()
-    compressed = result["compressed_prompt"]
+    compressed = result["results"]["compressed_prompt"]
 
-    print(f"Original: {result['original_prompt_tokens']} tokens")
-    print(f"Compressed: {result['compressed_prompt_tokens']} tokens")
+    print(f"Original: {result['results']['original_prompt_tokens']} tokens")
+    print(f"Compressed: {result['results']['compressed_prompt_tokens']} tokens")
     # Original: 620 tokens
     # Compressed: 95 tokens
     ```
@@ -210,7 +210,7 @@ by the American Arbitration Association in Wilmington, Delaware.
                 "scaledown": {"rate": "auto"}
             }
         )
-        compressed = compress_resp.json()["compressed_prompt"]
+        compressed = compress_resp.json()["results"]["compressed_prompt"]
 
         # Generate: LLM answers from compressed context
         ai_resp = openai_client.chat.completions.create(

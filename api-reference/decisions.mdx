@@ -544,6 +544,6 @@ curl -X POST https://api.scaledown.xyz/v1/scaledown \
 - `"classify"` and `"classify-1"` are the only supported `model` values. Omit it (defaults to `"classify-1"`) or pass either explicitly - any other value is rejected with `422`.
 - Every question in a request - `choice`, `noul`, or `score` - is one separate calibrated model call, run concurrently. `usage` is the sum across all of them - a request with a `choice`, a `noul`, and a `score` question makes 3 calls and bills for all 3.
 - `score`'s `criteria` is an **ordered array** (2-10 levels), unlike `choice`'s unordered `{key: description}` map - the array position is the level index.
-- No `reasoning` field exists on this endpoint - it never generates a free-form explanation, unlike `/classify` with `reasoning: true`.
+- No `reasoning` field exists on this endpoint - it never generates a free-form explanation, unlike [`/classify`](/api-reference/classify), which returns one by default (the `reasoning` parameter).
 - No batching - each request evaluates one `state`. To classify many items, use [`/classify`](/api-reference/classify)'s `chunks` array instead.
 - See [Differences from Jev](/api-reference/decisions-overview#differences-from-jev) for the full compatibility matrix.

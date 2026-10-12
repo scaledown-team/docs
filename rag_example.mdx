@@ -186,10 +186,10 @@ Your bot needs to find the right answer from the knowledge base without making t
         )
 
         result = response.json()
-        compressed_context = result["compressed_prompt"]
+        compressed_context = result["results"]["compressed_prompt"]
 
-        print(f"Original tokens:   {result['original_prompt_tokens']}")
-        print(f"Compressed tokens: {result['compressed_prompt_tokens']}")
+        print(f"Original tokens:   {result['results']['original_prompt_tokens']}")
+        print(f"Compressed tokens: {result['results']['compressed_prompt_tokens']}")
         # Original tokens:   350
         # Compressed tokens:  85
         ```
@@ -210,10 +210,10 @@ Your bot needs to find the right answer from the knowledge base without making t
         });
 
         const result = await response.json();
-        const compressedContext = result.compressed_prompt;
+        const compressedContext = result.results.compressed_prompt;
 
-        console.log(`Original tokens:   ${result.original_prompt_tokens}`);
-        console.log(`Compressed tokens: ${result.compressed_prompt_tokens}`);
+        console.log(`Original tokens:   ${result.results.original_prompt_tokens}`);
+        console.log(`Compressed tokens: ${result.results.compressed_prompt_tokens}`);
         ```
       </Tab>
     </Tabs>
@@ -327,9 +327,9 @@ Here's the complete, copy-paste-ready version wrapped in a reusable function:
             }
         )
         result = compress_response.json()
-        compressed_context = result["compressed_prompt"]
+        compressed_context = result["results"]["compressed_prompt"]
 
-        print(f"Tokens: {result['original_prompt_tokens']} -> {result['compressed_prompt_tokens']}")
+        print(f"Tokens: {result['results']['original_prompt_tokens']} -> {result['results']['compressed_prompt_tokens']}")
 
         # Step 2: Generate. Send compressed context to your LLM.
         ai_response = openai_client.chat.completions.create(
@@ -384,9 +384,9 @@ Here's the complete, copy-paste-ready version wrapped in a reusable function:
             }),
         });
         const result = await compressRes.json();
-        const compressedContext = result.compressed_prompt;
+        const compressedContext = result.results.compressed_prompt;
 
-        console.log(`Tokens: ${result.original_prompt_tokens} -> ${result.compressed_prompt_tokens}`);
+        console.log(`Tokens: ${result.results.original_prompt_tokens} -> ${result.results.compressed_prompt_tokens}`);
 
         // Step 2: Generate
         const completion = await openai.chat.completions.create({

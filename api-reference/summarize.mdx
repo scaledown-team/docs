@@ -23,8 +23,8 @@ POST https://api.scaledown.xyz/v1/chat/completions
   Standard OpenAI chat messages. The **last user message** is the text to summarize. Any **system** messages are joined and used as the summary `instructions`.
 </ParamField>
 
-<ParamField body="max_tokens" type="number" default={200}>
-  Standard OpenAI field. Maximum number of tokens in the generated summary. Defaults to `200`, which is also the maximum: larger values are capped at 200, and the model is instructed to finish within the limit. If a summary still hits the limit it is cut off and the parsed result sets `finish_reason` to `"length"` with a `notice`. For a higher output limit, email [neal@scaledown.ai](mailto:neal@scaledown.ai).
+<ParamField body="max_tokens" type="number" default={1000}>
+  Standard OpenAI field. Maximum number of tokens in the generated summary. Defaults to `1000`, which is also the maximum: larger values are capped at 1000, and the model is instructed to finish within the limit. If a summary still hits the limit it is cut off and the parsed result sets `finish_reason` to `"length"` with a `notice`. For a higher output limit, email [neal@scaledown.ai](mailto:neal@scaledown.ai).
 </ParamField>
 
 <ParamField body="document" type="string">
@@ -70,7 +70,7 @@ A standard `chat.completion`. The summary result is a **JSON string** in `choice
       End-to-end request latency in milliseconds.
     </ResponseField>
     <ResponseField name="input_tokens" type="number">
-      Input tokens billed for the request. Output length is capped at 200 tokens and does not add to the input-token charge.
+      Input tokens billed for the request. Output length is capped at 1000 tokens and does not add to the input-token charge.
     </ResponseField>
     <ResponseField name="finish_reason" type="string">
       `"stop"` when the summary finished on its own, or `"length"` when it was cut off at the output limit.

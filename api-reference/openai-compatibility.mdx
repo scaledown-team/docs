@@ -5,7 +5,7 @@ description: "Call extract and summarize synchronously through an OpenAI-compati
 
 ## Overview
 
-The base URL is `https://api.scaledown.xyz/v1` (note `.xyz`; `api.scaledown.ai` is not an API host). `GET /v1/models` lists `compress`, `extract`, `extract-1`, `summarize`, `summarize-1` (and the classify models `classify` and `classify-1`, which are called through [Decisions](/api-reference/decisions) and [`/classify`](/api-reference/classify), not chat completions), each with a context length of 1,000,000 tokens.
+The base URL is `https://api.scaledown.xyz/v1` (note `.xyz`; `api.scaledown.ai` is not an API host). `GET /v1/models` lists `compress`, `extract`, `extract-1`, `summarize`, `summarize-1` (and the classify models `classify` and `classify-1`, which are called through [Decisions](/api-reference/decisions) and [`/classify`](/api-reference/classify), not chat completions), each with a 1,000,000-token context window.
 
 The `extract` and `summarize` models are available through a
 standard OpenAI-compatible `POST /v1/chat/completions` endpoint. Select the
@@ -30,20 +30,42 @@ extract and summarize results return.
 
 ### `GET /v1/models`
 
-Returns the catalog of ScaleDown operations in the OpenAI list format (with
-additional OpenRouter provider metadata that plain OpenAI clients ignore). The example below is abridged to the chat-completions models.
+Returns the model catalog wrapped in the OpenAI list envelope
+(`"object": "list"`). Each entry in `data` follows OpenRouter's
+provider-monitor model schema (version 2.4): typed `input_modalities` and
+`output_modalities`, pricing, and an `openrouter.slug`. The example below is
+abridged to the chat-completions models.
 
 ```json
 {
   "object": "list",
   "data": [
-    { "id": "extract",     "...": "..." },
+    {
+      "schema_version": "2.4",
+      "id": "extract",
+      "name": "ScaleDown : Extract",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": { "max_context_length": { "value": 1000000, "unit": "token" } },
+          "pricing": [{ "type": "prompt", "unit": "token", "cost_usd": "0.00000005" }]
+        },
+        { "type": "image", "supported_inputs": { "sources": { "type": "enum", "values": ["url", "base64"] } } },
+        { "type": "file",  "supported_inputs": { "sources": { "type": "enum", "values": ["url", "base64"] } } }
+      ],
+      "is_ready": true,
+      "is_free": false,
+      "openrouter": { "slug": "scaledown/extract" },
+      "...": "..."
+    },
     { "id": "extract-1",   "...": "..." },
     { "id": "summarize",   "...": "..." },
     { "id": "summarize-1", "...": "..." }
   ]
 }
 ```
+
+Prices are listed at the base rate of $0.05 per 1M input tokens.
 
 ---
 
@@ -68,7 +90,7 @@ import json
 print(json.loads(r.choices[0].message.content)["summary"])
 ```
 
-`max_tokens` is honored as the standard OpenAI field for `summarize`, but is capped at 200 (the default). If a summary is cut off, the JSON result has `finish_reason: "length"` and a `notice`; for a higher limit, email neal@scaledown.ai.
+`max_tokens` is honored as the standard OpenAI field for `summarize`, but is capped at 1000 (the default). If a summary is cut off, the JSON result has `finish_reason: "length"` and a `notice`; for a higher limit, email neal@scaledown.ai.
 
 ---
 
