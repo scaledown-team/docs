@@ -35,8 +35,8 @@ Every result includes surrounding text on each side of the matched span, so you 
 <ParamField body="entities" type="object" required>
   A mapping of entity type names to their definition. Each value can be one of:
 
-  - A **plain string** - a description of what to look for
-  - An **object** - with optional `description`, `threshold`, and `top_n` fields
+  - A **plain string** - a description of what to look for. Every match in the text is returned as its own entity
+  - An **object** - with a `description` field
   - A **nested object** - defining a structured sub-schema (object with named fields)
   - An **array of objects** - defining a repeated structured schema (e.g. a list of line items)
   - A **classification key** - an object with a `labels` list, routed to the classifier (see below)
@@ -44,12 +44,6 @@ Every result includes surrounding text on each side of the matched span, so you 
   <Expandable title="Entity object fields">
     <ParamField body="description" type="string">
       What this entity type represents. Used as the model's search criteria.
-    </ParamField>
-    <ParamField body="threshold" type="number">
-      Per-entity confidence cutoff (0–1). Overrides the global `threshold` for this type only.
-    </ParamField>
-    <ParamField body="top_n" type="number">
-      Per-entity result limit. Overrides the global `top_n` for this type only.
     </ParamField>
   </Expandable>
 
@@ -65,18 +59,10 @@ Every result includes surrounding text on each side of the matched span, so you 
   </Expandable>
 </ParamField>
 
-<ParamField body="threshold" type="number" default={0.5}>
-  Global confidence threshold (0–1). Entities below this score are filtered out. Can be overridden per entity type.
-</ParamField>
-
-<ParamField body="top_n" type="number" default={0}>
-  Global limit on how many results to return per entity type, ranked by confidence descending. `0` returns all results above the threshold. Can be overridden per entity type.
-</ParamField>
-
 ## Response
 
 <ResponseField name="entities" type="array">
-  List of extracted scalar entities, sorted by confidence descending within each type. For nested or array entity types, values appear in `structured_result` instead.
+  List of extracted scalar entities. Every match is returned as its own entry, grouped by entity type and in order of appearance in the text. For nested or array entity types, values appear in `structured_result` instead.
 
   <Expandable title="Entity object">
     <ResponseField name="text" type="string">
@@ -712,9 +698,9 @@ The classified value is returned as the entity `text`, and `confidence` is the c
 
 ---
 
-### With per-entity overrides
+### Multiple matches per type
 
-Use per-entity `threshold` and `top_n` when different entity types need different precision, or when you only want the single best match for a given type.
+A plain-string entity returns **every** match in the text, one entity per match, in order of appearance. You do not need to ask for a list.
 
 <CodeGroup>
 
@@ -723,21 +709,11 @@ curl -X POST https://api.scaledown.xyz/extract \
   -H "Content-Type: application/json" \
   -H "x-api-key: <your-api-key>" \
   -d '{
-    "text": "...",
+    "text": "Alice Johnson, Bob Martinez and Carol Nguyen flew from Paris to London.",
     "entities": {
-      "Name": {
-        "description": "Full name of a person",
-        "threshold": 0.3,
-        "top_n": 1
-      },
-      "Company": {
-        "description": "Company or organization name",
-        "threshold": 0.7
-      },
-      "Email": "Email address"
-    },
-    "threshold": 0.5,
-    "top_n": 5
+      "person": "Full name of a person",
+      "city": "Name of a city"
+    }
   }'
 ```
 
@@ -748,14 +724,11 @@ response = requests.post(
     "https://api.scaledown.xyz/extract",
     headers={"x-api-key": "<your-api-key>"},
     json={
-        "text": "...",
+        "text": "Alice Johnson, Bob Martinez and Carol Nguyen flew from Paris to London.",
         "entities": {
-            "Name": {"description": "Full name of a person", "threshold": 0.3, "top_n": 1},
-            "Company": {"description": "Company or organization name", "threshold": 0.7},
-            "Email": "Email address",
+            "person": "Full name of a person",
+            "city": "Name of a city",
         },
-        "threshold": 0.5,
-        "top_n": 5,
     },
 )
 print(response.json())
@@ -769,14 +742,11 @@ const response = await fetch("https://api.scaledown.xyz/extract", {
     "x-api-key": "<your-api-key>",
   },
   body: JSON.stringify({
-    text: "...",
+    text: "Alice Johnson, Bob Martinez and Carol Nguyen flew from Paris to London.",
     entities: {
-      Name: { description: "Full name of a person", threshold: 0.3, top_n: 1 },
-      Company: { description: "Company or organization name", threshold: 0.7 },
-      Email: "Email address",
+      person: "Full name of a person",
+      city: "Name of a city",
     },
-    threshold: 0.5,
-    top_n: 5,
   }),
 });
 const data = await response.json();
@@ -784,10 +754,7 @@ const data = await response.json();
 
 </CodeGroup>
 
-In this example:
-- `Name` uses threshold `0.3` and returns at most 1 result
-- `Company` uses threshold `0.7` and returns up to 5 results (global `top_n`)
-- `Email` uses the global threshold `0.5` and returns up to 5 results
+This returns three `person` entities (Alice Johnson, Bob Martinez, Carol Nguyen) and two `city` entities (Paris, London). If you only want the first or best match, pick it from the list in your own code.
 
 ## Writing good entity labels
 
@@ -814,9 +781,9 @@ The entity name and description are both used as part of the model's search crit
 
 ## Notes
 
-- Results within each entity type are ranked by confidence descending before `top_n` is applied.
+- Results are grouped by entity type and returned in order of appearance in the text.
 - The `context` field is always derived from the original `text` input - it is not generated by the model.
 - Character offsets (`start`, `end`) refer to byte positions in the original `text` string.
 - There is no fixed limit on the number of entity types you can define in a single request.
 - [Classification keys](#classification-keys) (any entity object with a `labels` list) are routed to the classification model rather than extracted. Use them for boolean or categorical fields - keeping them out of the extraction path improves accuracy for both.
-- `threshold` and `top_n` do not apply to classification keys - the value is a single chosen label, always returned.
+- A classification key always returns a single chosen label.

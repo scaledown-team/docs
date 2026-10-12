@@ -15,7 +15,7 @@ This makes it practical to extract domain-specific entities that generic NER mod
 
 **Your entity types don't fit standard NER.** Off-the-shelf NER handles names, locations, and organizations. Extract handles whatever you define - lease terms, part numbers, clinical findings, competitor mentions, or any other domain-specific concept.
 
-**You need confidence scores.** Extract returns a confidence score for every result. You can set per-entity thresholds to filter out low-confidence hits, or use the scores to route extractions to a human review queue.
+**You need confidence scores on categorical decisions.** [Classification keys](/api-reference/extract#classification-keys) return a calibrated probability for the chosen label, which you can use to route uncertain decisions to a human review queue.
 
 **You want context alongside every result.** Every extracted span comes with 500 characters of surrounding text on each side, so you can verify the extraction in context without going back to the source document.
 
@@ -63,7 +63,6 @@ The entity name and description are treated as part of the model's prompt - how 
 | Entity types | Fixed (person, place, org, ...) | You define them in plain English |
 | Domain specificity | General-purpose | Works for any domain |
 | Confidence scores | Varies by model | Always included |
-| Per-entity thresholds | Not typically supported | Supported |
 | Context window | Usually sentence-level | Full document |
 | Structured / nested output | Not supported | Supported via nested object and array schemas |
 | Categorical / boolean fields | Extracted as text (lower accuracy) | Routed to a purpose-built classifier via `labels` |
