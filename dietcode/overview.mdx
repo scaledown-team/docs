@@ -1,0 +1,33 @@
+---
+title: "Overview"
+description: "Cut token usage in Claude Code, Codex CLI and Cursor with automatic compression, summarization and intent routing."
+---
+
+DietCode is an npm plugin that optimizes coding-agent sessions using ScaleDown. It runs automatically through hooks (Claude Code and Codex CLI) and an optional local proxy.
+
+<Card title="scaledown-team/DietCode" icon="github" href="https://github.com/scaledown-team/DietCode">
+  Source, issues and the full README.
+</Card>
+
+## What it does
+
+On every prompt, DietCode:
+
+1. **Classifies intent** and prepends a one-line hint such as `[DietCode intent: file_read (87%)]`, so the agent picks the right tool.
+2. **Compresses large contexts** when you paste a big codebase and ask a retrieval-style question, cutting 50-70% of tokens before the prompt reaches the model.
+3. **Compresses large tool outputs.** `ls`, `grep` and `git diff/log/status` are compacted with no latency; anything still large goes through ScaleDown.
+4. **Tracks savings** live in the Claude Code status line, for example `↓ 125.4K saved · 747 reqs`.
+
+Compression only fires on prompts that are both large and retrieval-style. Conversational prompts and code you ask it to write are left alone.
+
+```
+your prompt ──▶ [intent classify] ──▶ [needle-in-haystack?] ──▶ compress ──▶ agent
+                     │                        │
+                 one-line hint          /compress/raw/  (50-70% smaller)
+```
+
+<CardGroup cols={3}>
+  <Card title="Install" icon="download" href="/dietcode/install">Set up in about a minute.</Card>
+  <Card title="Proxy mode" icon="shuffle" href="/dietcode/proxy-mode">Real per-turn token savings.</Card>
+  <Card title="Supported clients" icon="plug" href="/dietcode/clients">Claude Code, Codex CLI, Cursor.</Card>
+</CardGroup>

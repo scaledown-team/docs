@@ -1,0 +1,60 @@
+---
+title: "Install"
+description: "Install DietCode and run the setup wizard."
+---
+
+You need Node.js 18+ and a ScaleDown API key from [scaledown.ai/dashboard](https://scaledown.ai/dashboard).
+
+## Claude Code (recommended)
+
+```bash
+npm install -g dietcode
+dietcode setup
+```
+
+The wizard:
+
+1. Opens your browser to get an API key.
+2. Validates the key you paste against the API.
+3. Saves it to your shell config and `~/.scaledown/config.json`.
+4. Registers the MCP server with Claude Code.
+5. Writes the `UserPromptSubmit`, `PostToolUse` and `PreCompact` hooks, the status line and the auto-compact threshold to `~/.claude/settings.json`.
+6. Offers to alias `claude` to `dietcode claude`, which turns on [proxy mode](/dietcode/proxy-mode).
+7. Optionally configures Codex CLI and Cursor.
+
+Restart Claude Code and you're done.
+
+## Codex CLI
+
+```bash
+npm install -g dietcode
+codex mcp add dietcode --env SCALEDOWN_API_KEY=your-key-here -- npx -y dietcode
+```
+
+Run `dietcode setup` and answer **y** for Codex CLI to register the same hooks Claude Code uses in `~/.codex/config.toml`.
+
+## Cursor
+
+```bash
+npm install -g dietcode
+```
+
+Add to `.cursor/mcp.json` (or `~/.cursor/mcp.json` for global use):
+
+```json
+{
+  "mcpServers": {
+    "dietcode": {
+      "command": "npx",
+      "args": ["-y", "dietcode"],
+      "env": { "SCALEDOWN_API_KEY": "your-key-here" }
+    }
+  }
+}
+```
+
+Restart Cursor. `sd_retrieve` appears in Agent mode.
+
+<Note>
+Cursor has no hook system, so it currently gets none of the automatic optimization. See [Supported clients](/dietcode/clients).
+</Note>

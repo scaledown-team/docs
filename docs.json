@@ -17,75 +17,199 @@
     }
   },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Getting Started",
-        "icon": "rocket",
-        "pages": [
-          "quickstart"
+        "tab": "Docs",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Compress",
+            "icon": "compress",
+            "pages": [
+              "api-reference/compress-overview",
+              "api-reference/integrate-compress"
+            ]
+          },
+          {
+            "group": "Summarize",
+            "icon": "align-left",
+            "pages": [
+              "api-reference/summarize-overview",
+              "api-reference/integrate-summarize"
+            ]
+          },
+          {
+            "group": "Extract",
+            "icon": "magnifying-glass",
+            "pages": [
+              "api-reference/extract-overview",
+              "api-reference/integrate-extract"
+            ]
+          },
+          {
+            "group": "Classify",
+            "icon": "tags",
+            "pages": [
+              "api-reference/classify-overview",
+              "api-reference/integrate-classify"
+            ]
+          },
+          {
+            "group": "Benchmarks",
+            "icon": "chart-line",
+            "pages": [
+              "benchmarks/overview",
+              "benchmarks/providers"
+            ]
+          },
+          {
+            "group": "Cookbooks",
+            "icon": "book",
+            "pages": [
+              "cookbooks/overview",
+              {
+                "group": "Browse by data type",
+                "pages": [
+                  "cookbooks/voice",
+                  "cookbooks/messages",
+                  "cookbooks/documents",
+                  "cookbooks/web"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "DietCode",
+            "icon": "terminal",
+            "pages": [
+              "dietcode/overview",
+              "dietcode/install"
+            ]
+          },
+          {
+            "group": "ScaleDown Agent",
+            "icon": "robot",
+            "pages": [
+              "slm-agent/overview",
+              "slm-agent/install"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "icon": "code",
+            "pages": [
+              "api-reference/compress",
+              "api-reference/summarize",
+              "api-reference/extract",
+              "api-reference/classify"
+            ]
+          }
         ]
       },
       {
-        "group": "Classify",
-        "icon": "tags",
-        "pages": [
-          "api-reference/classify-overview",
-          "api-reference/classify",
-          "api-reference/integrate-classify"
+        "tab": "API Reference",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "icon": "code",
+            "pages": [
+              "api-reference/compress",
+              "api-reference/summarize",
+              "api-reference/extract",
+              "api-reference/classify"
+            ]
+          }
         ]
       },
       {
-        "group": "Decisions",
-        "icon": "split",
-        "pages": [
-          "api-reference/decisions-overview",
-          "api-reference/decisions",
-          "api-reference/integrate-decisions"
+        "tab": "Benchmarks",
+        "icon": "chart-line",
+        "groups": [
+          {
+            "group": "Benchmarks",
+            "pages": [
+              "benchmarks/overview",
+              "benchmarks/providers"
+            ]
+          }
         ]
       },
       {
-        "group": "Extract",
-        "icon": "magnifying-glass",
-        "pages": [
-          "api-reference/extract-overview",
-          "api-reference/extract",
-          "api-reference/integrate-extract"
+        "tab": "Cookbooks",
+        "icon": "book",
+        "groups": [
+          {
+            "group": "Cookbooks",
+            "pages": [
+              "cookbooks/overview",
+              {
+                "group": "Browse by data type",
+                "pages": [
+                  "cookbooks/voice",
+                  "cookbooks/messages",
+                  "cookbooks/documents",
+                  "cookbooks/web"
+                ]
+              }
+            ]
+          }
         ]
       },
       {
-        "group": "Summarize",
-        "icon": "align-left",
-        "pages": [
-          "api-reference/summarize-overview",
-          "api-reference/summarize",
-          "api-reference/integrate-summarize"
+        "tab": "DietCode",
+        "icon": "terminal",
+        "groups": [
+          {
+            "group": "DietCode",
+            "pages": [
+              "dietcode/overview",
+              "dietcode/install",
+              "dietcode/proxy-mode",
+              "dietcode/clients"
+            ]
+          }
         ]
       },
       {
-        "group": "Compress",
-        "icon": "compress",
-        "pages": [
-          "api-reference/compress-overview",
-          "api-reference/compress",
-          "api-reference/integrate-compress"
-        ]
-      },
-      {
-        "group": "Batch",
-        "icon": "layer-group",
-        "pages": [
-          "api-reference/batch-overview",
-          "api-reference/batch",
-          "api-reference/integrate-batch"
-        ]
-      },
-      {
-        "group": "OpenAI Compatibility",
-        "icon": "plug",
-        "pages": [
-          "api-reference/openai-compatibility"
+        "tab": "ScaleDown Agent",
+        "icon": "robot",
+        "groups": [
+          {
+            "group": "ScaleDown Agent",
+            "pages": [
+              "slm-agent/overview",
+              "slm-agent/install",
+              "slm-agent/evaluate",
+              "slm-agent/optimize"
+            ]
+          }
         ]
       }
+    ]
+  },
+  "logo": {
+    "light": "/logo/scaledown.png",
+    "dark": "/logo/scaledown.png",
+    "href": "https://scaledown.ai"
+  },
+  "favicon": "/logo/favicon.png",
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "cursor",
+      "vscode"
     ]
   }
 }

@@ -1,0 +1,24 @@
+---
+title: "Methodology"
+description: "The datasets and metrics behind every ScaleDown benchmark."
+---
+
+Each ScaleDown model is scored on one public dataset with one standard metric, so results are comparable across providers.
+
+| Task | Dataset | Metric | What is tested |
+|---|---|---|---|
+| **Classify** | CLINC OOS | Accuracy | Picking the right intent label, including out-of-scope queries |
+| **Extract** | CUAD | F1 | Pulling contract clauses and fields out of legal agreements |
+| **Summarize** | QMSum | ROUGE-L | Summarizing multi-speaker meeting transcripts |
+| **Compress** | FinanceBench | F1 | Answering finance questions from long filings after the context is compressed |
+
+## How to read the results
+
+- **Accuracy** is shown per task and as an average. Cross-task scores use standardized F1, ROUGE-L and accuracy.
+- **Cost** is price per 1K requests, so cheap models and large models are compared on the same unit.
+- **Latency** is response time per task. Lower is better.
+- Every provider page compares ScaleDown against **each model** in that provider's lineup, not just the flagship.
+
+<Note>
+Compress is evaluated end to end: the compressed context is passed to a downstream LLM and the answer is scored, so the metric reflects whether the right information survived.
+</Note>

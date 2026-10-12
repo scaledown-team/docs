@@ -1,0 +1,55 @@
+---
+title: "Web Pages"
+description: "Scraped pages and enriched records for GTM and signal products."
+---
+
+Scraped pages and enriched records for GTM and signal products. Four recipes, one per ScaleDown model.
+
+## Compress
+
+<Card title="Strip HTML boilerplate and repetition out of a scraped page before any downstream call." icon="compress" href="https://scaledown.ai/cookbooks/web-compress">
+  Sits in front of your LLM. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Raw web content is mostly navigation, markup, and restatement across sources: high redundancy, high Compress leverage. |
+| **How it goes** | Scraped page in → Compress strips boilerplate → the downstream model works on the signal. |
+| **Payoff** | Large token reduction on noisy pages before the expensive step. |
+
+## Summarize
+
+<Card title="Turn an enriched record or scraped page into a short, human-readable summary." icon="align-left" href="https://scaledown.ai/cookbooks/web-summarize">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | The output a user reads should be a tight profile, not a wall of scraped text. |
+| **How it goes** | Page or record in → Summarize produces the profile → surface it in the product. |
+| **Payoff** | Readable summaries at crawl volume. |
+
+## Extract
+
+<Card title="Pull structured facts off a page: company, role, signal, contact details." icon="magnifying-glass" href="https://scaledown.ai/cookbooks/web-extract">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Enrichment is continuous extraction over raw web content; this is the core loop for GTM and signal products. |
+| **How it goes** | Page in → tell Extract the fields → it returns structured facts → into the record. |
+| **Payoff** | Structured enrichment off unstructured pages. |
+
+## Classify
+
+<Card title="Relevance-score and tag scraped records, so only the useful ones move on." icon="tags" href="https://scaledown.ai/cookbooks/web-classify">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Most scraped records are junk; you want a cheap, fast filter before spending on extraction. |
+| **How it goes** | Record in → Classify scores relevance and assigns tags → route or drop. |
+| **Payoff** | Fast filtering keeps junk out of the expensive pipeline. |
+

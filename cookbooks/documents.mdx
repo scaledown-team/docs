@@ -1,0 +1,55 @@
+---
+title: "Files & Docs"
+description: "Filings, contracts, reports and case files, including OCR output."
+---
+
+Filings, contracts, reports and case files, including OCR output. Four recipes, one per ScaleDown model.
+
+## Compress
+
+<Card title="Strip redundant, low-signal text out of a long document before it hits your LLM." icon="compress" href="https://scaledown.ai/cookbooks/documents-compress">
+  Sits in front of your LLM. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | Filings, contracts, and reports are long and repetitive across versions; you are paying to process restatement. |
+| **How it goes** | Document or post-OCR text in → Compress trims to what the task needs → the LLM runs on the trimmed context. |
+| **Payoff** | On FinanceBench, Compress with GPT-5.4 delivered +8% accuracy with 97% fewer tokens vs. GPT-5.4 alone. |
+
+## Summarize
+
+<Card title="Digest a long filing, contract, or case file into a short brief." icon="align-left" href="https://scaledown.ai/cookbooks/documents-summarize">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | The reader needs the gist of a dense document, not the whole thing. |
+| **How it goes** | Document in → Summarize produces the brief → surface it to the user or downstream step. |
+| **Payoff** | Document briefs without a frontier call per doc. |
+
+## Extract
+
+<Card title="Pull structured facts: parties, dates, amounts, clauses, citations." icon="magnifying-glass" href="https://scaledown.ai/cookbooks/documents-extract">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | In regulated work a wrong field is a real problem; Extract returns the values as written. |
+| **How it goes** | Document in → tell Extract the fields → it returns them structured → into the system of record. |
+| **Payoff** | Clean structured data off unstructured docs. |
+
+## Classify
+
+<Card title="Triage and tag documents by type, relevance, and routing." icon="tags" href="https://scaledown.ai/cookbooks/documents-classify">
+  Replaces an LLM call. Open the full Python recipe.
+</Card>
+
+| | |
+|---|---|
+| **Why it fits** | At high document volume you want a cheap first pass that decides what each doc is before deeper work. |
+| **How it goes** | Document in → Classify assigns the label → route to the right pipeline or reviewer. |
+| **Payoff** | Fast triage at page-volume scale. |
+

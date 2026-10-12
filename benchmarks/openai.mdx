@@ -1,0 +1,30 @@
+---
+title: "ScaleDown vs OpenAI"
+description: "ScaleDown against GPT-5.5, GPT-5.4 Mini and GPT-5.4 Nano."
+---
+
+Compared against **GPT-5.5**, **GPT-5.4 Mini** and **GPT-5.4 Nano** on the four benchmark tasks.
+
+## Accuracy
+
+ScaleDown averages **8.72% higher accuracy** than the OpenAI average.
+
+| Task | Dataset | ScaleDown vs OpenAI avg |
+|---|---|---|
+| Classify | CLINC OOS | +5.40% |
+| Extract | CUAD | +14.40% |
+| Summarize | QMSum | +8.83% |
+| Compress | FinanceBench | +6.23% |
+
+## Latency
+
+ScaleDown is about **2.4x faster** than the OpenAI average. Response time in milliseconds:
+
+| Task | ScaleDown | GPT-5.5 | Mini | Nano | OpenAI avg |
+|---|---|---|---|---|---|
+| Classify | 647 | 3,592 | 694 | 697 | 1,661 |
+| Extract | 918 | 6,083 | 1,042 | 1,860 | 2,995 |
+| Summarize | 1,426 | 7,805 | 1,856 | 1,759 | 3,807 |
+| Compress | 2,658 | 8,217 | 3,087 | 3,426 | 4,910 |
+
+[Cost and full charts](https://scaledown.ai/benchmarks/scaledown-vs-openai): Per-1K-request cost, accuracy charts and the cost-vs-accuracy plot on scaledown.ai.

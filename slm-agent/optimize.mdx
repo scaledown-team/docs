@@ -1,0 +1,31 @@
+---
+title: "Optimize"
+description: "Tune a ScaleDown prompt until it matches or beats the frontier model it replaced."
+---
+
+Migrating a call is step one. `/slm-agent:optimize` is step two: making the ScaleDown model's output match or beat the frontier model on **your** data.
+
+```bash
+export SCALEDOWN_API_KEY=...
+/slm-agent:optimize
+```
+
+## The loop
+
+1. **Collect** your API key (read from the environment, never written to disk) and a small set of labeled samples.
+2. **Create samples if you have none.** It finds representative inputs in your project, agrees a label schema with you, records a baseline answer per sample, and validates the set.
+3. **Run a reproducible eval** (`scaledown-eval/run_eval.py`) with a metric that can't be gamed.
+4. **Iterate the prompt** one scoped change at a time. It re-runs the current best twice in the same batch to separate real gains from API noise, and scores the whole task so a win on one class that regresses another is caught.
+
+## Metric per task
+
+| Task | Metric |
+|---|---|
+| Classify | Macro-F1 plus a confusion matrix, so a rare class can't be ignored |
+| Extract | Per-field precision and recall, split by real vs empty so a field can't look accurate by returning nothing |
+| Summarize | ROUGE and faithfulness |
+| Compress | Compression ratio plus downstream correctness |
+
+## Output
+
+Everything lives under `scaledown-eval/`: the samples, each prompt version, per-round metrics, and an `optimization-report.md` with the winning prompt and the exact command to reproduce it. Sample data is only sent to the ScaleDown endpoint you provided a key for.

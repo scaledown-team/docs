@@ -1,0 +1,35 @@
+---
+title: "Overview"
+description: "Scan your codebase for LLM calls and migrate them to ScaleDown models, then tune the prompts against your own data."
+---
+
+ScaleDown Agent is an MCP server and Claude Code plugin that finds AI API calls in your project and shows where ScaleDown models can replace or shrink them. It analyzes code locally; no source code is sent to ScaleDown.
+
+<Card title="scaledown-team/SLM_Agent" icon="github" href="https://github.com/scaledown-team/SLM_Agent">
+  Source, issues and the full README.
+</Card>
+
+## What it does
+
+1. **Evaluates.** Scans for OpenAI, Anthropic, LangChain, LlamaIndex, Cohere and other AI calls.
+2. **Plans.** Maps each call site to the model that fits:
+
+   | Model | Use it to | Savings |
+   |---|---|---|
+   | `sd_compress` | Cut context tokens 50-70% before your LLM call (RAG, long docs) | Fewer tokens |
+   | `sd_classify` | Replace LLM classification calls | ~95% cheaper |
+   | `sd_extract` | Replace LLM entity extraction calls | ~95% cheaper |
+   | `sd_summarize` | Replace LLM summarization calls | ~90% cheaper |
+
+3. **Migrates.** Applies the changes to your code, with your approval.
+4. **Optimizes.** Tunes the prompt you pass to a ScaleDown model on your own data and benchmarks it against the frontier-model output it replaced.
+
+## Supported providers
+
+OpenAI, Anthropic and LangChain (Python and TypeScript/JS); LlamaIndex, Cohere and Google Generative AI (Python); Vercel AI SDK (TypeScript/JS).
+
+<CardGroup cols={3}>
+  <Card title="Install" icon="download" href="/slm-agent/install">Claude Code, Cursor, VS Code.</Card>
+  <Card title="Evaluate" icon="magnifying-glass" href="/slm-agent/evaluate">Migration report and MCP tools.</Card>
+  <Card title="Optimize" icon="sliders" href="/slm-agent/optimize">Tune prompts on your data.</Card>
+</CardGroup>

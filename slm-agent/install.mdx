@@ -1,0 +1,64 @@
+---
+title: "Install"
+description: "Add ScaleDown Agent to Claude Code, Cursor, VS Code or any MCP client."
+---
+
+## Claude Code
+
+```
+/plugin marketplace add scaledown-team/SLM_Agent
+/plugin install slm-agent@scaledown
+/reload-plugins
+```
+
+Then, inside any project:
+
+```
+/slm-agent:evaluate    # find and migrate AI calls to ScaleDown models
+/slm-agent:optimize    # tune a ScaleDown prompt against your own data
+```
+
+The plugin configures the MCP server and registers both skills. No further setup needed.
+
+<Tabs>
+  <Tab title="Cursor">
+    Add to `.cursor/mcp.json` (or `~/.cursor/mcp.json` for global):
+
+    ```json
+    {
+      "mcpServers": {
+        "scaledown-slm-agent": {
+          "command": "npx",
+          "args": ["-y", "@scaledown/migration-agent"]
+        }
+      }
+    }
+    ```
+
+    Then ask Cursor: *"Use the scaledown-slm-agent tools to evaluate this codebase for ScaleDown integration opportunities."*
+
+    **`optimize` in Cursor:** Cursor loads Agent Skills from `.agents/skills/`. Copy `optimize/` from the package (or the cloned repo) into your project's `.agents/skills/`, restart Cursor, and ask it to "optimize my ScaleDown prompt". `optimize` needs no MCP setup; `evaluate` does.
+  </Tab>
+  <Tab title="VS Code">
+    Add to `.vscode/mcp.json`:
+
+    ```json
+    {
+      "servers": {
+        "scaledown-slm-agent": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@scaledown/migration-agent"]
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Any MCP client">
+    ```bash
+    npm install -g @scaledown/migration-agent
+    ```
+
+    Configure your client to run `scaledown-agent`.
+  </Tab>
+</Tabs>
