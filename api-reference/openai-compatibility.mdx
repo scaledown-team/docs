@@ -106,8 +106,8 @@ The parsed `message.content` matches the `/extract` response
 
 Extract behaves exactly like the native [`/extract`](/api-reference/extract)
 endpoint, because it runs the same code. A scalar (`string`) property returns
-**every** match in the text as its own entry in `entities`, in order of
-appearance, each with a `confidence` (the probability the model assigned to that
+each **distinct** value in the text (up to 10 per property) as its own entry in
+`entities`, in order of first appearance, each with a `confidence` (the probability the model assigned to that
 exact text). Nothing is filtered unless you ask:
 
 - **`threshold`** (0–1, default `0`): drop entities whose `confidence` is below it.
@@ -148,7 +148,7 @@ A property typed as an `array` (of strings or of objects) is returned as-is in
 Scalar and array properties can be mixed in one schema. Note that in a request that
 contains any array or nested-object property, scalar properties return a single
 value each, as before; use a request with only scalar properties (or declare the
-property as an `array`) when you want every match.
+property as an `array`) when you want every distinct value (up to 10 per property).
 
 ### Classification within extract
 

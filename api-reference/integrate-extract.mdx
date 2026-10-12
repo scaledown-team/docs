@@ -131,8 +131,8 @@ API details:
       "ocr_text": "<raw OCR text>" | null
     }
   Scalar entity results are in "entities"; nested object and array results are in
-  "structured_result". Every match of a scalar type is returned as its own entity,
-  in order of appearance; threshold drops entities below that confidence and top_n
+  "structured_result". Each distinct value of a scalar type is returned as its own entity
+  (up to 10 per type), in order of first appearance; threshold drops entities below that confidence and top_n
   keeps the N most confident per type.
 - Error responses: 422 (malformed body, neither text nor document, or OCR failure),
   500 (server error), 504 (timeout)

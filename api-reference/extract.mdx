@@ -35,7 +35,7 @@ Every result includes surrounding text on each side of the matched span, so you 
 <ParamField body="entities" type="object" required>
   A mapping of entity type names to their definition. Each value can be one of:
 
-  - A **plain string** - a description of what to look for. Every match in the text is returned as its own entity
+  - A **plain string** - a description of what to look for. Each distinct value found in the text is returned as its own entity (up to 10 per type)
   - An **object** - with a `description` field and optional `threshold` and `top_n` overrides
   - A **nested object** - defining a structured sub-schema (object with named fields)
   - An **array of objects** - defining a repeated structured schema (e.g. a list of line items)
@@ -76,7 +76,7 @@ Every result includes surrounding text on each side of the matched span, so you 
 ## Response
 
 <ResponseField name="entities" type="array">
-  List of extracted scalar entities. Every match is returned as its own entry, grouped by entity type and in order of appearance in the text. For nested or array entity types, values appear in `structured_result` instead.
+  List of extracted scalar entities. Each distinct value is returned as its own entry (at most 10 per entity type), grouped by entity type and in order of first appearance in the text. For nested or array entity types, values appear in `structured_result` instead.
 
   <Expandable title="Entity object">
     <ResponseField name="text" type="string">
@@ -714,7 +714,7 @@ The classified value is returned as the entity `text`, and `confidence` is the c
 
 ### Multiple matches, with limits
 
-A plain-string entity returns **every** match in the text, one entity per match, in order of appearance. You do not need to ask for a list.
+A plain-string entity returns each **distinct** value found in the text, one entity per value, in order of first appearance, up to 10 per entity type. A value that occurs several times is returned once (at its first occurrence). You do not need to ask for a list.
 
 <CodeGroup>
 
@@ -808,6 +808,7 @@ The entity name and description are both used as part of the model's search crit
 
 ## Notes
 
+- Plain-string entity types return at most 10 distinct values each. Nested and array definitions are bounded at 200 items.
 - Results are grouped by entity type and returned in order of appearance in the text. `top_n` selects the most confident entities but does not reorder them.
 - Array definitions (`[{...}]`) are returned in `structured_result` as a plain list (strings or objects), not a list of lists. If a request contains any array or nested-object definition, its plain-string entities return a single value each; send them in a separate request (or declare them as arrays) to get every match.
 - `threshold` and `top_n` apply to extracted entities only. A classification key always returns a single chosen label.
