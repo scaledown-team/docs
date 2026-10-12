@@ -453,9 +453,9 @@
                   },
                   "max_tokens": {
                     "type": "number",
-                    "default": 200,
-                    "maximum": 200,
-                    "description": "Maximum number of tokens in the generated summary. Defaults to 200 and cannot be raised; contact neal@scaledown.ai for a higher limit."
+                    "default": 1000,
+                    "maximum": 1000,
+                    "description": "Maximum number of tokens in the generated summary. Defaults to 1000 and cannot be raised; contact neal@scaledown.ai for a higher limit."
                   }
                 }
               }

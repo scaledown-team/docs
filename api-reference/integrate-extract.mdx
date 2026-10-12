@@ -98,7 +98,7 @@ API details:
           | { "<field>": "<description>", ... }           // nested object schema
           | [{ "<field>": "<description>", ... }]         // array-of-objects schema
           | {                                             // classification key
-              "labels": [ "<label>" | { "name": "<label>", "rubric": "<when it applies>" }, ... ],  // 2–26 labels
+              "labels": [ "<label>" | { "name": "<label>", "rubric": "<when it applies>" }, ... ],  // 2–20 labels
               "description": "<optional context for the decision>"  // optional
             }
       }
@@ -111,7 +111,7 @@ API details:
   probability of the chosen label (returned as the entity "text"). Its "start"/"end"/
   "context" point at the verbatim evidence phrase backing the decision (not the label
   text, which is usually inferred and not present verbatim), falling back to 0 / "" when
-  no evidence is found. A classification key with fewer than 2 or more than 26 labels
+  no evidence is found. A classification key with fewer than 2 or more than 20 labels
   returns 422.
 - Success response (JSON):
     {
