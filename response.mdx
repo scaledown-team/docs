@@ -1,0 +1,21 @@
+---
+title: "Understanding the response"
+description: "What the Compress API returns and how to read it."
+---
+
+The API response provides the compressed prompt along with useful metadata about the operation.
+```json
+{
+  "compressed_prompt": "Your optimized context here...",
+  "original_prompt_tokens": 150,
+  "compressed_prompt_tokens": 65,
+  "successful": true,
+  "latency_ms": 2341,
+  "request_metadata": {
+    "compression_time_ms": 2341,
+    "compression_rate": "auto",
+    "prompt_length": 425,
+    "compressed_prompt_length": 189
+  }
+}
+```
