@@ -124,7 +124,7 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, empty `labels` array, none of `text`/`chunks`/`document` provided, more than 50 chunks, more than 16 labels in multi-label mode, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, empty `labels` array, none of `text`/`chunks`/`document` provided, more than 50 chunks, more than 20 labels (16 in multi-label mode), or OCR failed. |
 | `502 Bad Gateway` | Model service unavailable or returned an error. |
 
 ## Authentication
@@ -678,7 +678,7 @@ The endpoint always returns a winner - even if the model is uncertain. If you ne
 
 ## Notes
 
-- Single-label mode supports up to 26 labels; multi-label mode is capped at 16. Batch requests are capped at 50 chunks. Larger sets cost more: in single-label mode all labels and rubrics go into one model call, so every extra label adds its rubric to the billed input tokens (and to the reasoning call, which re-sends them at 2x); in multi-label mode each label is a separate model call, and each chunk is scored separately, run with bounded concurrency.
+- A request supports up to 20 labels in either mode; multi-label mode is further capped at 16. Batch requests are capped at 50 chunks. Larger sets cost more: in single-label mode all labels and rubrics go into one model call, so every extra label adds its rubric to the billed input tokens (and to the reasoning call, which re-sends them at 2x); in multi-label mode each label is a separate model call, and each chunk is scored separately, run with bounded concurrency.
 - In single-label mode, scores are **relative**, not absolute. A top score of `0.4` in a 10-label request can still be the correct answer - it just means probability mass was spread across many labels.
 - Batch (`chunks`) exists to reduce cost: the shared profile is billed once per request instead of once per chunk. Calibration is identical to sending each chunk separately.
 - Multi-label and batch requests do not return a `reasoning` field; single-label requests return it by default (see the `reasoning` parameter).

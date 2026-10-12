@@ -57,7 +57,7 @@ Every result includes surrounding text on each side of the matched span, so you 
     A key whose object contains a `labels` list is treated as a **classification key**. Rather than copying a value out of the text, its value is decided by choosing among your labels using our classification model - which is purpose-built for categorical and boolean decisions and is more accurate on them than the extraction model. The response still includes the evidence span and surrounding context. See [Classification keys](#classification-keys) for details.
 
     <ParamField body="labels" type="array" required>
-      The candidate values to choose between (2–26). Each label is either a **plain string** (the value to return) or an **object** with `name` and `rubric` fields, where `rubric` describes when that label applies. Providing rubrics improves accuracy.
+      The candidate values to choose between (2–20). Each label is either a **plain string** (the value to return) or an **object** with `name` and `rubric` fields, where `rubric` describes when that label applies. Providing rubrics improves accuracy.
     </ParamField>
     <ParamField body="description" type="string">
       Optional context about the decision being made for this key. Prepended to the combined rubric.
@@ -112,7 +112,7 @@ Every result includes surrounding text on each side of the matched span, so you 
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, a classification key with fewer than 2 or more than 26 labels, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, neither `text` nor `document` provided, a classification key with fewer than 2 or more than 20 labels, or OCR failed. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Extraction request timed out. |
 
@@ -703,7 +703,7 @@ const data = await response.json();
 The classified value is returned as the entity `text`, and `confidence` is the calibrated probability of the chosen label. The label itself is usually not a verbatim span in the source (it was inferred), so `start`/`end` and `context` instead point at the **evidence** the model used for the decision - here, `"90 days past due"` for `is_delinquent`, not the word "delinquent". If no relevant evidence is found, `start`/`end` fall back to `0` and `context` is empty. In a [structured (nested)](#structured-nested-extraction) request, classified values also appear in `structured_result` under their key.
 
 <Note>
-  A classification key still counts as part of your single `/extract` call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 26 labels; outside that range the request returns `422`.
+  A classification key still counts as part of your single `/extract` call - one request in, one response out, billed as one extract call. Each classification key needs at least 2 and at most 20 labels; outside that range the request returns `422`.
 </Note>
 
 <Tip>
