@@ -21,7 +21,7 @@ Every question in a request is answered against the same shared `state`, concurr
 
 **You want several classification decisions from one request.** Mix `choice`, `noul`, and `score` questions in a single call - e.g. pick a category, check an independent tag, *and* rate severity - instead of making separate `/classify` calls.
 
-**You don't need our classify-specific features.** `/v1/scaledown` is a thin, standard-shaped layer over `/classify`. If you need batching (`chunks`), image-direct multimodal input, or the free-form `reasoning` explanation, use [`/classify`](/api-reference/classify) directly - `/v1/scaledown` intentionally doesn't expose those.
+**You don't need our classify-specific features.** `/v1/scaledown` is a thin, standard-shaped layer over `/classify`. If you need batching (`chunks`), image-direct multimodal input, or the free-form `reasoning` explanation (returned by default, controlled by the `reasoning` parameter), use [`/classify`](/api-reference/classify) directly - `/v1/scaledown` intentionally doesn't expose those.
 
 ## How it fits into your workflow
 

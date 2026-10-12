@@ -68,10 +68,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "compressed_prompt": { "type": "string" },
-                    "original_prompt_tokens": { "type": "number" },
-                    "compressed_prompt_tokens": { "type": "number" },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "success": { "type": "boolean" },
+                        "compressed_prompt": { "type": "string", "description": "The compressed context." },
+                        "original_prompt": { "type": "string", "description": "The prompt, unchanged." },
+                        "original_prompt_tokens": { "type": "number" },
+                        "compressed_prompt_tokens": { "type": "number" },
+                        "compression_ratio": { "type": "number" }
+                      }
+                    },
+                    "model_used": { "type": "string" },
+                    "input_tokens": { "type": "number" },
+                    "total_original_tokens": { "type": "number" },
+                    "total_compressed_tokens": { "type": "number" },
+                    "num_pairs_processed": { "type": "number" },
+                    "num_successful": { "type": "number" },
+                    "num_failed": { "type": "number" },
                     "successful": { "type": "boolean" },
+                    "partially_successful": { "type": "boolean" },
                     "latency_ms": { "type": "number" },
                     "request_metadata": {
                       "type": "object",
@@ -83,8 +99,7 @@
                             { "type": "number" }
                           ]
                         },
-                        "prompt_length": { "type": "number" },
-                        "compressed_prompt_length": { "type": "number" }
+                        "average_compression_ratio": { "type": "number" }
                       }
                     }
                   }

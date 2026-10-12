@@ -143,10 +143,10 @@ product_catalog = """
     )
 
     result = response.json()
-    compressed = result["compressed_prompt"]
+    compressed = result["results"]["compressed_prompt"]
 
-    print(f"Original: {result['original_prompt_tokens']} tokens")
-    print(f"Compressed: {result['compressed_prompt_tokens']} tokens")
+    print(f"Original: {result['results']['original_prompt_tokens']} tokens")
+    print(f"Compressed: {result['results']['compressed_prompt_tokens']} tokens")
     ```
 
     <Accordion title="What got compressed?">
@@ -210,7 +210,7 @@ product_catalog = """
                 "scaledown": {"rate": "auto"}
             }
         )
-        compressed = compress_resp.json()["compressed_prompt"]
+        compressed = compress_resp.json()["results"]["compressed_prompt"]
 
         # Generate
         ai_resp = openai_client.chat.completions.create(

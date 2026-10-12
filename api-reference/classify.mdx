@@ -48,10 +48,18 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
   Only used when `multi_label` is `true`. A label is included in `matched_labels` when its independent score is greater than or equal to this value. All scores are still returned, so you can also re-threshold client-side.
 </ParamField>
 
+<ParamField body="reasoning" type="boolean" default="true">
+  When `true` (default), a second model call writes a one-sentence `reasoning` explaining the label chosen by the first call. Set `false` to skip it: faster, and the extra reasoning input tokens (billed at 2x) are not charged. Only applies to single-label requests with a single `text`/`document`; multi-label and batch (`chunks`) requests never return `reasoning`.
+</ParamField>
+
 ## Response
 
 <ResponseField name="top_label" type="string">
   Name of the highest-scoring label.
+</ResponseField>
+
+<ResponseField name="reasoning" type="string">
+  One-sentence explanation of the decision (empty string when `reasoning` is `false`, or for multi-label and batch requests). It is generated **after** `top_label` is chosen, with the chosen label passed in, so it explains that decision. It is free-form text and is not a second opinion: if none of your labels fits the text well, it may say so (e.g. note that the text is about something else) while `top_label` still returns the best of the labels you gave. Add a catch-all label such as `other` to give those texts somewhere to go.
 </ResponseField>
 
 <ResponseField name="scores" type="object">
@@ -670,7 +678,7 @@ The endpoint always returns a winner - even if the model is uncertain. If you ne
 
 ## Notes
 
-- Single-label mode supports up to 26 labels; multi-label mode is capped at 16. Batch requests are capped at 50 chunks. Larger sets cost more since each label (and each chunk) is a separate calibrated model call, run with bounded concurrency.
+- Single-label mode supports up to 26 labels; multi-label mode is capped at 16. Batch requests are capped at 50 chunks. Larger sets cost more: in single-label mode all labels and rubrics go into one model call, so every extra label adds its rubric to the billed input tokens (and to the reasoning call, which re-sends them at 2x); in multi-label mode each label is a separate model call, and each chunk is scored separately, run with bounded concurrency.
 - In single-label mode, scores are **relative**, not absolute. A top score of `0.4` in a 10-label request can still be the correct answer - it just means probability mass was spread across many labels.
 - Batch (`chunks`) exists to reduce cost: the shared profile is billed once per request instead of once per chunk. Calibration is identical to sending each chunk separately.
-- Multi-label and batch requests do not return a `reasoning` field.
+- Multi-label and batch requests do not return a `reasoning` field; single-label requests return it by default (see the `reasoning` parameter).

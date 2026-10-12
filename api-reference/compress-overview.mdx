@@ -38,7 +38,7 @@ Compress sits between your data retrieval step and your model call. Your applica
 [Your app] → [Retrieve context] → [POST /compress/raw/] → [Call your AI model]
 ```
 
-The `compressed_prompt` field in the response is a drop-in replacement for the combined context and prompt you would have sent directly.
+The response nests the result under `results`. `results.compressed_prompt` is a drop-in replacement for the `context` you sent; your `prompt` is returned unchanged in `results.original_prompt`.
 
 ## Pricing impact
 

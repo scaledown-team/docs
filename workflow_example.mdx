@@ -17,7 +17,7 @@ Here's how to use the compressed context in your AI workflow:
         }
     )
 
-    compressed_context = compressed_response.json()["compressed_prompt"]
+    compressed_context = compressed_response.json()["results"]["compressed_prompt"]
 
     # Step 2: Use compressed context with your AI provider
     your_actual_question = "What specific question you want answered"
