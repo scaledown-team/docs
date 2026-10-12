@@ -1,24 +1,6 @@
-# Getting Started with ScaleDown: Your AI Cost Optimization Guide
-
-
-
-## What is ScaleDown?
-
-ScaleDown is a suite of task-specific small language models (SLMs) that reduce your AI token usage through context extraction - identifying and retaining only the information that matters for your task. You get the same quality responses while paying significantly less.
-
 ---
-
-## Before You Start
-
-To use ScaleDown, you'll need:
-* An API key
-* Basic knowledge of making API calls
-* Your existing AI prompts that you want to optimize
-
-The API base URL is `https://api.scaledown.xyz`. (`api.scaledown.ai` is not an API host.)
-
-Ready to get your API key? [Contact our sales team](https://app.reclaim.ai/m/neal-scaledown/25-min).
-
+title: "Quickstart"
+description: "Make your first ScaleDown request in three steps."
 ---
 
 ## Your First ScaleDown Request
@@ -160,29 +142,4 @@ With your request set up and configured, you can now execute the API call.
 
 That's it! Your prompt is now compressed and ready to be used with your AI model.
 
----
-
-## Understanding the Response Structure
-The API response provides the compressed prompt along with useful metadata about the operation.
-```json
-{
-  "compressed_prompt": "Your optimized context here...",
-  "original_prompt_tokens": 150,
-  "compressed_prompt_tokens": 65,
-  "successful": true,
-  "latency_ms": 2341,
-  "request_metadata": {
-    "compression_time_ms": 2341,
-    "compression_rate": "auto",
-    "prompt_length": 425,
-    "compressed_prompt_length": 189
-  }
-}
-```
-
-
-
-
-
-
-
+Next: [understand the response](/response).

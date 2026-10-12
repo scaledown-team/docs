@@ -26,89 +26,9 @@
             "group": "Getting Started",
             "icon": "rocket",
             "pages": [
-              "quickstart"
-            ]
-          },
-          {
-            "group": "Compress",
-            "icon": "compress",
-            "pages": [
-              "api-reference/compress-overview",
-              "api-reference/integrate-compress"
-            ]
-          },
-          {
-            "group": "Summarize",
-            "icon": "align-left",
-            "pages": [
-              "api-reference/summarize-overview",
-              "api-reference/integrate-summarize"
-            ]
-          },
-          {
-            "group": "Extract",
-            "icon": "magnifying-glass",
-            "pages": [
-              "api-reference/extract-overview",
-              "api-reference/integrate-extract"
-            ]
-          },
-          {
-            "group": "Classify",
-            "icon": "tags",
-            "pages": [
-              "api-reference/classify-overview",
-              "api-reference/integrate-classify"
-            ]
-          },
-          {
-            "group": "Benchmarks",
-            "icon": "chart-line",
-            "pages": [
-              "benchmarks/overview",
-              "benchmarks/providers"
-            ]
-          },
-          {
-            "group": "Cookbooks",
-            "icon": "book",
-            "pages": [
-              "cookbooks/overview",
-              {
-                "group": "Browse by data type",
-                "pages": [
-                  "cookbooks/voice",
-                  "cookbooks/messages",
-                  "cookbooks/documents",
-                  "cookbooks/web"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "DietCode",
-            "icon": "terminal",
-            "pages": [
-              "dietcode/overview",
-              "dietcode/install"
-            ]
-          },
-          {
-            "group": "ScaleDown Agent",
-            "icon": "robot",
-            "pages": [
-              "slm-agent/overview",
-              "slm-agent/install"
-            ]
-          },
-          {
-            "group": "API Reference",
-            "icon": "code",
-            "pages": [
-              "api-reference/compress",
-              "api-reference/summarize",
-              "api-reference/extract",
-              "api-reference/classify"
+              "introduction",
+              "quickstart",
+              "response"
             ]
           }
         ]
@@ -118,13 +38,39 @@
         "icon": "code",
         "groups": [
           {
-            "group": "Endpoints",
-            "icon": "code",
+            "group": "Compress",
+            "icon": "compress",
             "pages": [
+              "api-reference/compress-overview",
               "api-reference/compress",
+              "api-reference/integrate-compress"
+            ]
+          },
+          {
+            "group": "Summarize",
+            "icon": "align-left",
+            "pages": [
+              "api-reference/summarize-overview",
               "api-reference/summarize",
+              "api-reference/integrate-summarize"
+            ]
+          },
+          {
+            "group": "Extract",
+            "icon": "magnifying-glass",
+            "pages": [
+              "api-reference/extract-overview",
               "api-reference/extract",
-              "api-reference/classify"
+              "api-reference/integrate-extract"
+            ]
+          },
+          {
+            "group": "Classify",
+            "icon": "tags",
+            "pages": [
+              "api-reference/classify-overview",
+              "api-reference/classify",
+              "api-reference/integrate-classify"
             ]
           }
         ]
