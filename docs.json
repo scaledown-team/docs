@@ -30,95 +30,35 @@
             ]
           },
           {
-            "group": "Models",
-            "icon": "cube",
+            "group": "Compress",
+            "icon": "compress",
             "pages": [
-              {
-                "group": "Compress",
-                "icon": "compress",
-                "pages": [
-                  "api-reference/compress-overview",
-                  "api-reference/integrate-compress"
-                ]
-              },
-              {
-                "group": "Summarize",
-                "icon": "align-left",
-                "pages": [
-                  "api-reference/summarize-overview",
-                  "api-reference/integrate-summarize"
-                ]
-              },
-              {
-                "group": "Extract",
-                "icon": "magnifying-glass",
-                "pages": [
-                  "api-reference/extract-overview",
-                  "api-reference/integrate-extract"
-                ]
-              },
-              {
-                "group": "Classify",
-                "icon": "tags",
-                "pages": [
-                  "api-reference/classify-overview",
-                  "api-reference/integrate-classify"
-                ]
-              }
+              "api-reference/compress-overview",
+              "api-reference/integrate-compress"
             ]
           },
           {
-            "group": "Cookbooks",
-            "icon": "book",
+            "group": "Summarize",
+            "icon": "align-left",
             "pages": [
-              "cookbooks/overview",
-              {
-                "group": "Browse by data type",
-                "pages": [
-                  "cookbooks/voice",
-                  "cookbooks/messages",
-                  "cookbooks/documents",
-                  "cookbooks/web"
-                ]
-              }
+              "api-reference/summarize-overview",
+              "api-reference/integrate-summarize"
             ]
           },
           {
-            "group": "Benchmarks",
-            "icon": "chart-line",
+            "group": "Extract",
+            "icon": "magnifying-glass",
             "pages": [
-              "benchmarks/overview",
-              "benchmarks/providers"
+              "api-reference/extract-overview",
+              "api-reference/integrate-extract"
             ]
           },
           {
-            "group": "Developer Tools",
-            "icon": "terminal",
+            "group": "Classify",
+            "icon": "tags",
             "pages": [
-              {
-                "group": "DietCode",
-                "pages": [
-                  "dietcode/overview",
-                  "dietcode/install"
-                ]
-              },
-              {
-                "group": "ScaleDown Agent",
-                "pages": [
-                  "slm-agent/overview",
-                  "slm-agent/install"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "API Reference",
-            "icon": "code",
-            "pages": [
-              "api-reference/compress",
-              "api-reference/summarize",
-              "api-reference/extract",
-              "api-reference/classify"
+              "api-reference/classify-overview",
+              "api-reference/integrate-classify"
             ]
           }
         ]
