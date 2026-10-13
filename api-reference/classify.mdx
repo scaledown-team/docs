@@ -12,7 +12,7 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 ## Request
 
 <ParamField body="text" type="string">
-  The text to classify. Provide exactly one of `text`, `chunks`, or `document`. If both `text` and `document` are given, the OCR text is appended after `text`.
+  The text to classify. Provide exactly one of `text`, `chunks`, or `document`. If both `text` and `document` are given, the document text is appended after `text`.
 </ParamField>
 
 <ParamField body="chunks" type="array">
@@ -20,7 +20,7 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 </ParamField>
 
 <ParamField body="document" type="string">
-  A base64-encoded file to classify. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input. Either `text` or `document` must be provided.
+  A base64-encoded file to classify. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The text is read from the file and used as input. Either `text` or `document` must be provided.
 </ParamField>
 
 <ParamField body="document_mime_type" type="string">
@@ -116,7 +116,7 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 </ResponseField>
 
 <ResponseField name="ocr_text" type="string | null">
-  The raw text extracted from the document via OCR. `null` if no `document` was provided.
+  The raw text extracted from the document. `null` if no `document` was provided.
 </ResponseField>
 
 **Score semantics:** In single-label mode, scores are relative probabilities that sum to 1 — a score of `0.85` means 85% of the probability mass relative to the other labels. In multi-label mode, each label's score is an independent probability that it applies, so scores do not sum to 1 and should be compared against `threshold` individually.
@@ -125,7 +125,7 @@ The `/classify` endpoint scores a piece of text against a set of labels you defi
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, empty `labels` array, none of `text`/`chunks`/`document` provided, more than 50 chunks, more than 20 labels (16 in multi-label mode), or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, empty `labels` array, none of `text`/`chunks`/`document` provided, more than 50 chunks, more than 20 labels (16 in multi-label mode), or the document could not be read. |
 | `502 Bad Gateway` | Model service unavailable or returned an error. |
 
 ## Authentication
@@ -348,7 +348,7 @@ const data = await response.json();
 
 ### Classifying a document
 
-Pass a base64-encoded image or PDF in the `document` field. The OCR text is extracted automatically and classified against your labels. The raw OCR output is returned as `ocr_text`.
+Pass a base64-encoded image or PDF in the `document` field. The text is extracted automatically and classified against your labels. The raw extracted text is returned as `ocr_text`.
 
 <CodeGroup>
 

@@ -341,7 +341,7 @@
             }
           },
           "402": { "description": "Insufficient credits." },
-          "422": { "description": "Malformed request body, empty questions map, empty criteria on a choice question, a score question's criteria outside the 2-10 item range, neither state.text nor state.document provided, an unsupported model value, or OCR failed." },
+          "422": { "description": "Malformed request body, empty questions map, empty criteria on a choice question, a score question's criteria outside the 2-10 item range, neither state.text nor state.document provided, an unsupported model value, or the document could not be read." },
           "502": { "description": "Model service unavailable or returned an error." },
           "504": { "description": "Request timed out." }
         }
