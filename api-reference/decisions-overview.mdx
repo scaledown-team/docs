@@ -1,6 +1,7 @@
 ---
-title: "Overview"
-description: "A Jev-compatible decisions API: ask typed choice, noul, and score questions against a shared state object."
+title: "Decisions overview"
+sidebarTitle: "Overview"
+description: "A drop-in replacement for the Jev Decisions API: answer typed choice, yes/no and scale questions about a piece of text."
 ---
 
 ## What it does
@@ -33,7 +34,7 @@ Internally, each `choice` question becomes one single-label classify call (its `
 
 ## Model
 
-The only supported `model` value is `"classify-1"`, which is also the default when the field is omitted. Sending any other value returns `422`. There's currently no way to select a different backend model through this endpoint.
+The supported `model` values are `"classify"` (always the latest version) and `"classify-1"` (pinned to version 1), which are currently identical. `"classify-1"` is the default when the field is omitted. Sending any other value returns `422`. There's currently no way to select a different backend model through this endpoint.
 
 ## Differences from Jev
 
@@ -42,7 +43,7 @@ The only supported `model` value is `"classify-1"`, which is also the default wh
 | `choice` / `noul` / `score` | ✅ | ✅ |
 | Mixed question types per request | ✅ | ✅ - routed internally, answered concurrently |
 | Arbitrary multi-field `state` object | ✅ | Only `state.text` / `state.document` are read |
-| Model selection | Multiple models | Only `"classify-1"` |
+| Model selection | Multiple models | Only `"classify"` / `"classify-1"` |
 | Batch input (many items per request) | ❌ | Not on `/v1/scaledown` - use [`/classify`](/api-reference/classify)'s `chunks` |
 | Document / image classification | ❌ | `state.document` + `state.document_mime_type` (non-standard extension) |
 | Free-form reasoning explanation | ❌ | Not available on this endpoint (see [`/classify`](/api-reference/classify)'s `reasoning` field) |

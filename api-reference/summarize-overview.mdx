@@ -5,13 +5,13 @@ description: "Generate fluent, faithful summaries of long text."
 
 ## What it does
 
-The `/summarization/abstractive` endpoint condenses text into a shorter, fluent rewrite in the model's own words. Unlike extractive summarization - which lifts sentences directly from the source - abstractive summarization produces a coherent output that captures the key information without being constrained to the original phrasing.
+The `summarize` model, called through the OpenAI-compatible `POST /v1/chat/completions` endpoint, condenses text into a shorter, fluent rewrite in the model's own words. Unlike extractive summarization - which lifts sentences directly from the source - abstractive summarization produces a coherent output that captures the key information without being constrained to the original phrasing.
 
 ## When to use it
 
 **You need to condense long documents for humans or downstream models.** Summaries reduce reading time for human reviewers and reduce token costs when passing document content to another model.
 
-**You need format or focus control.** The `instructions` field lets you specify bullet points, a particular language, a word limit, or a topical focus - without overriding the core faithful-summary behaviour.
+**You need format or focus control.** A system message lets you specify bullet points, a particular language, a word limit, or a topical focus - without overriding the core faithful-summary behaviour.
 
 **You want consistent, low-noise outputs.** Sampling parameters (temperature, top-p) are fixed to a configuration tuned for faithful summarization. You get stable, predictable outputs rather than creative or hallucinated ones.
 
@@ -32,7 +32,7 @@ The `/summarization/abstractive` endpoint condenses text into a shorter, fluent 
 Summarize works as a standalone step that can sit anywhere documents are consumed - before storing, before displaying, or before passing to another model.
 
 ```
-[Ingest document] → [POST /summarization/abstractive] → [Summary] → [Store / display / pass to model]
+[Ingest document] → [POST /v1/chat/completions, model "summarize"] → [Summary] → [Store / display / pass to model]
 ```
 
 The response includes `input_chars` and `output_chars` so you can track compression ratios across your pipeline, and `latency_ms` for performance monitoring.
@@ -44,4 +44,4 @@ The response includes `input_chars` and `output_chars` so you can track compress
 | How it works | Selects and stitches existing sentences | Rewrites content in the model's own words |
 | Output quality | Can feel disjointed | Fluent and coherent |
 | Faithfulness | Directly tied to source | Validated - rejects off-task outputs |
-| Flexibility | Limited | Controllable via `instructions` |
+| Flexibility | Limited | Controllable via a system message |

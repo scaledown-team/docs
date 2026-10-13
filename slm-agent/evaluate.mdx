@@ -15,7 +15,7 @@ Evaluation saves `scaledown-report.md` in your project root, following a fixed s
 | **Complexity breakdown** | Calls at each level, trivial to highly complex |
 | **Per-opportunity sections** | Files, line numbers, complexity score, confidence and action for each of `sd_classify`, `sd_extract`, `sd_summarize`, `sd_compress` |
 | **Complex call decompositions** | For calls scoring 3+/5, which sub-tasks can move to a ScaleDown model and which still need a frontier LLM |
-| **HTTP API reference** | Request and response shapes for `/classify`, `/extract`, `/summarization/abstractive` and `/compress/raw/` |
+| **HTTP API reference** | Request and response shapes for `/classify`, `/v1/scaledown`, `/v1/chat/completions` (`extract`, `summarize`) and `/compress/raw/` |
 
 ```markdown
 ## Summary

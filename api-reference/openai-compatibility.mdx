@@ -1,21 +1,21 @@
 ---
 title: "OpenAI Compatibility"
-description: "Call extract, classify, and summarize synchronously through an OpenAI-compatible /v1/chat/completions endpoint."
+description: "Call extract and summarize synchronously through an OpenAI-compatible /v1/chat/completions endpoint."
 ---
 
 ## Overview
 
-The base URL is `https://api.scaledown.xyz/v1` (note `.xyz`; `api.scaledown.ai` is not an API host). `GET /v1/models` lists `compress`, `extract`, `classify` and `summarize`, plus a pinned `<name>-1` id for each (`classify-1`, `extract-1`, ...). Each one is a Constrained Decoding Model (CDM) with a 1,000,000-token context window.
+The base URL is `https://api.scaledown.xyz/v1` (note `.xyz`; `api.scaledown.ai` is not an API host). `GET /v1/models` lists `compress`, `extract`, `extract-1`, `summarize`, `summarize-1` (and the classify models `classify` and `classify-1`, which are called through [Decisions](/api-reference/decisions) and [`/classify`](/api-reference/classify), not chat completions), each with a 1,000,000-token context window.
 
-The `extract`, `summarize`, and `classify` operations are available through a
+The `extract` and `summarize` models are available through a
 standard OpenAI-compatible `POST /v1/chat/completions` endpoint. Select the
-operation with the `model` field — exactly as the [Batch API](/api-reference/batch)
+model with the `model` field (`extract` / `summarize` for the latest version, `extract-1` / `summarize-1` to pin version 1) — exactly as the [Batch API](/api-reference/batch)
 does. This lets you point an unmodified OpenAI (or OpenRouter) SDK client at
 ScaleDown.
 
 The structured result is returned as a JSON string in
 `choices[0].message.content` — parse it to get the same object the realtime
-`/extract`, `/classify`, and `/summarization/abstractive` endpoints return.
+extract and summarize results return.
 
 **Request headers**
 
@@ -33,7 +33,8 @@ The structured result is returned as a JSON string in
 Returns the model catalog wrapped in the OpenAI list envelope
 (`"object": "list"`). Each entry in `data` follows OpenRouter's
 provider-monitor model schema (version 2.4): typed `input_modalities` and
-`output_modalities`, pricing, and an `openrouter.slug`.
+`output_modalities`, pricing, and an `openrouter.slug`. The example below is
+abridged to the chat-completions models.
 
 ```json
 {
@@ -41,10 +42,8 @@ provider-monitor model schema (version 2.4): typed `input_modalities` and
   "data": [
     {
       "schema_version": "2.4",
-      "id": "classify",
-      "created": 1791849600,
-      "name": "ScaleDown : Classify",
-      "description": "Classify is a Constrained Decoding Model (CDM) from ScaleDown. ...",
+      "id": "extract",
+      "name": "ScaleDown : Extract",
       "input_modalities": [
         {
           "type": "text",
@@ -54,28 +53,19 @@ provider-monitor model schema (version 2.4): typed `input_modalities` and
         { "type": "image", "supported_inputs": { "sources": { "type": "enum", "values": ["url", "base64"] } } },
         { "type": "file",  "supported_inputs": { "sources": { "type": "enum", "values": ["url", "base64"] } } }
       ],
-      "output_modalities": [
-        {
-          "type": "decisions",
-          "supported_parameters": {},
-          "pricing": [{ "type": "completion", "unit": "token", "cost_usd": "0" }]
-        }
-      ],
       "is_ready": true,
       "is_free": false,
-      "discount_to_user": 0.2,
-      "openrouter": { "slug": "scaledown/classify" }
+      "openrouter": { "slug": "scaledown/extract" },
+      "...": "..."
     },
-    { "id": "extract",   "...": "..." },
-    { "id": "summarize", "...": "..." }
+    { "id": "extract-1",   "...": "..." },
+    { "id": "summarize",   "...": "..." },
+    { "id": "summarize-1", "...": "..." }
   ]
 }
 ```
 
-`extract`, `classify` and `summarize` all accept text, images and files as
-input. Prices are listed at the base rate of $0.05 per 1M input tokens;
-`discount_to_user: 0.2` applies a 20% discount through OpenRouter, so users pay
-$0.04 per 1M input tokens.
+Prices are listed at the base rate of $0.05 per 1M input tokens.
 
 ---
 
@@ -132,61 +122,13 @@ r = client.chat.completions.create(
 )
 ```
 
-The parsed `message.content` matches the `/extract` response
+The parsed `message.content` is the extraction result
 (`{"entities": [...], "structured_result": {...}, "input_tokens": ...}`).
-
-### Multiple matches and limits
-
-Extract behaves exactly like the native [`/extract`](/api-reference/extract)
-endpoint, because it runs the same code. A scalar (`string`) property returns
-each **distinct** value in the text (up to 10 per property) as its own entry in
-`entities`, in order of first appearance, each with a `confidence` (the probability the model assigned to that
-exact text). Nothing is filtered unless you ask:
-
-- **`threshold`** (0–1, default `0`): drop entities whose `confidence` is below it.
-- **`top_n`** (default `0` = all): keep only the N most confident entities per type.
-
-Pass them as request-level fields via the SDK's `extra_body`:
-
-```python
-r = client.chat.completions.create(
-    model="extract",
-    messages=[{"role": "user", "content": "Alice, Bob and Carol met in Paris."}],
-    response_format={...},                      # as above
-    extra_body={"threshold": 0.5, "top_n": 2},
-)
-```
-
-To set them for a single field, add `threshold` and/or `top_n` as extra keywords
-on that property in the schema (JSON Schema ignores unknown keywords):
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "person": {"type": "string", "description": "a person's full name", "top_n": 1},
-    "city":   {"type": "string", "description": "a city", "threshold": 0.8}
-  }
-}
-```
-
-Per-property values override the request-level ones. `threshold` and `top_n` apply
-to scalar properties only, not to nested objects, arrays, or classification
-properties (`enum` / `oneOf`), which are returned in `structured_result` as before.
-
-### Arrays
-
-A property typed as an `array` (of strings or of objects) is returned as-is in
-`structured_result`, a plain list of strings or of objects, not a list of lists.
-Scalar and array properties can be mixed in one schema. Note that in a request that
-contains any array or nested-object property, scalar properties return a single
-value each, as before; use a request with only scalar properties (or declare the
-property as an `array`) when you want every distinct value (up to 10 per property).
 
 ### Classification within extract
 
 `extract` can also classify a field against a fixed set of labels in the same
-call (the same behavior as the realtime `/extract` endpoint). Express a
+call. Express a
 classification field as a constrained-choice property:
 
 - **`enum`** — the values are the labels; an optional `description` becomes the
@@ -220,36 +162,9 @@ flat `entities` body: `{"sentiment": {"labels": [{"name": ..., "rubric": ...}]}}
 
 ---
 
-## `"model": "classify"`
-
-Classification needs a per-label **rubric** (decision guidance that drives the
-calibrated scoring), which has no native slot in the OpenAI chat schema. Supply
-`labels` as an array of `{name, rubric}` via the SDK's `extra_body`. The text
-comes from the last user message; an optional `system_prompt` may be passed the
-same way.
-
-```python
-r = client.chat.completions.create(
-    model="classify",
-    messages=[{"role": "user", "content": "My server has been down for 3 hours."}],
-    extra_body={
-        "labels": [
-            {"name": "critical", "rubric": "Service fully down or data loss right now."},
-            {"name": "high",     "rubric": "Major feature broken, no workaround."},
-            {"name": "low",      "rubric": "Cosmetic issue, question, or request."},
-        ]
-    },
-)
-```
-
-Provide between 2 and 20 labels. The parsed `message.content` matches the
-`/classify` response (`top_label`, `scores`, `labels`, `reasoning`, `input_tokens`).
-
----
-
 ## Flat body (batch parity)
 
-For every operation you may instead send the domain fields as top-level keys —
+For either model you may instead send the domain fields as top-level keys —
 the same shape as a [batch item `body`](/api-reference/batch) — and they take
 precedence over the message/`response_format` carriers:
 
@@ -263,7 +178,7 @@ This makes a batch item body usable verbatim against the synchronous endpoint.
 
 ## Response shape
 
-All three operations return a standard `chat.completion`:
+Both models return a standard `chat.completion`:
 
 ```json
 {
@@ -279,5 +194,5 @@ All three operations return a standard `chat.completion`:
 }
 ```
 
-`model` echoes the operation name; `usage.prompt_tokens` carries the operation's
+`model` echoes the model id you sent; `usage.prompt_tokens` carries the operation's
 `input_tokens`.

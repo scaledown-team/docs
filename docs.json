@@ -42,8 +42,7 @@
             "icon": "compress",
             "pages": [
               "api-reference/compress-overview",
-              "api-reference/compress",
-              "api-reference/integrate-compress"
+              "api-reference/compress"
             ]
           },
           {
@@ -51,8 +50,7 @@
             "icon": "align-left",
             "pages": [
               "api-reference/summarize-overview",
-              "api-reference/summarize",
-              "api-reference/integrate-summarize"
+              "api-reference/summarize"
             ]
           },
           {
@@ -60,8 +58,7 @@
             "icon": "magnifying-glass",
             "pages": [
               "api-reference/extract-overview",
-              "api-reference/extract",
-              "api-reference/integrate-extract"
+              "api-reference/extract"
             ]
           },
           {
@@ -69,8 +66,19 @@
             "icon": "tags",
             "pages": [
               "api-reference/classify-overview",
-              "api-reference/classify",
-              "api-reference/integrate-classify"
+              {
+                "group": "Custom ScaleDown API",
+                "pages": [
+                  "api-reference/classify"
+                ]
+              },
+              {
+                "group": "Decisions API (Jev-compatible)",
+                "pages": [
+                  "api-reference/decisions-overview",
+                  "api-reference/decisions"
+                ]
+              }
             ]
           }
         ]

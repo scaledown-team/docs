@@ -14,13 +14,13 @@ Each model has its own job. Compress runs before your LLM; the other three each 
     **Runs in front of your LLM.** Trims retrieved or pasted context down to what the question needs, so the LLM call uses fewer tokens and returns faster. Endpoint: `POST /compress/raw/`.
   </Card>
   <Card title="Summarize" icon="align-left" href="/api-reference/summarize-overview">
-    **Replaces an LLM call.** Turns long, messy text such as transcripts, threads and filings into a short abstractive summary. Endpoint: `POST /summarization/abstractive`.
+    **Replaces an LLM call.** Turns long, messy text such as transcripts, threads and filings into a short abstractive summary. Model: `summarize` on `POST /v1/chat/completions`.
   </Card>
   <Card title="Extract" icon="magnifying-glass" href="/api-reference/extract-overview">
-    **Replaces an LLM call.** Pulls the fields you define out of unstructured text and returns them as structured data, exactly as written in the source. Endpoint: `POST /extract`.
+    **Replaces an LLM call.** Pulls the fields you define out of unstructured text and returns them as structured data, exactly as written in the source. Model: `extract` on `POST /v1/chat/completions`.
   </Card>
   <Card title="Classify" icon="tags" href="/api-reference/classify-overview">
-    **Replaces an LLM call.** Scores text against labels you define with a yes/no rubric and returns a probability for each, plus a `top_label` for routing. Endpoint: `POST /classify`.
+    **Replaces an LLM call.** Scores text against labels you define with a yes/no rubric and returns a probability for each, plus a `top_label` for routing. Endpoints: `POST /v1/scaledown` (Decisions) and `POST /classify`.
   </Card>
 </CardGroup>
 
