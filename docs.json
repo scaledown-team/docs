@@ -38,14 +38,6 @@
         "icon": "code",
         "groups": [
           {
-            "group": "Compress",
-            "icon": "compress",
-            "pages": [
-              "api-reference/compress-overview",
-              "api-reference/compress"
-            ]
-          },
-          {
             "group": "Summarize",
             "icon": "align-left",
             "pages": [
@@ -79,6 +71,14 @@
                   "api-reference/decisions"
                 ]
               }
+            ]
+          },
+          {
+            "group": "Compress",
+            "icon": "compress",
+            "pages": [
+              "api-reference/compress-overview",
+              "api-reference/compress"
             ]
           }
         ]

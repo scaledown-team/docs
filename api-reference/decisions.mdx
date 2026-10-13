@@ -159,7 +159,7 @@ score = 0×0.0 + 1×0.57 + 2×0.43 = 1.43
 
 | Status | Meaning |
 |--------|---------|
-| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, `criteria` outside the 2-10 range on a `score` question, neither `state.text` nor `state.document` provided, an unsupported `model` value, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, empty `questions` map, empty `criteria` on a `choice` question, `criteria` outside the 2-10 range on a `score` question, neither `state.text` nor `state.document` provided, an unsupported `model` value, or the document could not be read. |
 | `402 Payment Required` | Insufficient credits. |
 | `502 Bad Gateway` | Model service unavailable or returned an error. |
 | `504 Gateway Timeout` | Request timed out. |

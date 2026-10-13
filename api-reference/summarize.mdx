@@ -28,7 +28,7 @@ POST https://api.scaledown.xyz/v1/chat/completions
 </ParamField>
 
 <ParamField body="document" type="string">
-  Non-standard extension, passed with the SDK's `extra_body`. A base64-encoded file to summarize. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input.
+  Non-standard extension, passed with the SDK's `extra_body`. A base64-encoded file to summarize. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The text is read from the file and used as input.
 </ParamField>
 
 <ParamField body="document_mime_type" type="string">
@@ -79,7 +79,7 @@ A standard `chat.completion`. The summary result is a **JSON string** in `choice
       Present only when `finish_reason` is `"length"`. Explains that the output limit was reached and that a higher limit is available by contacting neal@scaledown.ai.
     </ResponseField>
     <ResponseField name="ocr_text" type="string | null">
-      The raw text extracted from the document via OCR. `null` if no `document` was provided.
+      The raw text extracted from the document. `null` if no `document` was provided.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -90,7 +90,7 @@ A standard `chat.completion`. The summary result is a **JSON string** in `choice
 |--------|---------|
 | `400 Bad Request` | No input text (no user message, `text`, or `document`). |
 | `402 Payment Required` | Insufficient credits. |
-| `422 Unprocessable Entity` | Malformed request body or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body or the document could not be read. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Summarization request timed out. |
 
@@ -236,7 +236,7 @@ The parsed `content` is:
 
 ### Summarizing a document
 
-Pass a base64-encoded image or PDF through `extra_body` (`extra_body` fields are merged into the top level of the request). The OCR text is extracted automatically and summarized, and the raw OCR output is returned as `ocr_text`. A message is still required; use a short placeholder user message.
+Pass a base64-encoded image or PDF through `extra_body` (`extra_body` fields are merged into the top level of the request). The text is extracted automatically and summarized, and the raw extracted text is returned as `ocr_text`. A message is still required; use a short placeholder user message.
 
 <CodeGroup>
 

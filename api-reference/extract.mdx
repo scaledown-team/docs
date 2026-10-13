@@ -47,7 +47,7 @@ POST https://api.scaledown.xyz/v1/chat/completions
 </ParamField>
 
 <ParamField body="document" type="string">
-  Non-standard extension, passed with `extra_body`. A base64-encoded file to extract from. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The file is processed via AWS Textract OCR and the extracted text is used as input; if the user message also has text, the OCR text is appended after it.
+  Non-standard extension, passed with `extra_body`. A base64-encoded file to extract from. Supported formats: JPEG, PNG, TIFF, single-page PDF, multi-page PDF. The text is read from the file and used as input; if the user message also has text, the document text is appended after it.
 </ParamField>
 
 <ParamField body="document_mime_type" type="string">
@@ -108,7 +108,7 @@ A standard `chat.completion`. The extraction result is a **JSON string** in `cho
     </ResponseField>
 
     <ResponseField name="ocr_text" type="string | null">
-      The raw text extracted from the document via OCR. `null` if no `document` was provided.
+      The raw text extracted from the document. `null` if no `document` was provided.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -119,7 +119,7 @@ A standard `chat.completion`. The extraction result is a **JSON string** in `cho
 |--------|---------|
 | `400 Bad Request` | No input text, `response_format` missing or not `json_schema`, a schema with no properties, or a `$ref`/`$defs` in the schema. |
 | `402 Payment Required` | Insufficient credits. |
-| `422 Unprocessable Entity` | Malformed request body, a classification key with fewer than 2 or more than 20 labels, or OCR failed. |
+| `422 Unprocessable Entity` | Malformed request body, a classification key with fewer than 2 or more than 20 labels, or the document could not be read. |
 | `500 Internal Server Error` | Inference service unavailable. |
 | `504 Gateway Timeout` | Extraction request timed out. |
 
@@ -242,9 +242,9 @@ The parsed `content` is:
 }
 ```
 
-### Extracting from an image or PDF (OCR)
+### Extracting from an image or PDF
 
-Extract has built-in OCR (AWS Textract). Pass a base64-encoded photo, scan, or PDF through `extra_body` and the text is recovered before extraction, so receipts, invoices, IDs, and scanned forms work without a separate OCR step. A message is still required; use a short placeholder user message. The raw OCR output is returned as `ocr_text`.
+Pass a base64-encoded photo, scan, or PDF through `extra_body` and the text is read before extraction, so receipts, invoices, IDs, and scanned forms work without a separate preprocessing step. A message is still required; use a short placeholder user message. The raw extracted text is returned as `ocr_text`.
 
 <CodeGroup>
 
@@ -384,7 +384,7 @@ curl -X POST https://api.scaledown.xyz/v1/chat/completions \
 
 Some of the fields you want are not really *extraction* targets - they are **decisions**. "Is this account past due?" or "Is this an electric or gas meter?" have no verbatim span to pull; they require judging the text against a fixed set of options. The extraction model is tuned to copy spans out of the source, so it is a poor fit for these, and mixing them into an extraction call drags down accuracy for every key.
 
-To handle these, mark the key as a **classification key** by constraining it to a fixed list of labels. Any key constrained this way is split out of the extraction call and routed to our [classification model](/api-reference/classify) instead - a model purpose-built for categorical and boolean decisions, using constrained decoding over your labels with calibrated confidence scores. The rest of the request extracts as normal, and classified values are merged back into the same response so nothing changes on your side.
+To handle these, mark the key as a **classification key** by constraining it to a fixed list of labels. Any key constrained this way is split out of the extraction call and routed to our [classification model](/api-reference/classify) instead - a Constrained Decoding Model (CDM) purpose-built for categorical and boolean decisions, using constrained decoding over your labels with calibrated confidence scores. The rest of the request extracts as normal, and classified values are merged back into the same response so nothing changes on your side.
 
 Each label has a name and, optionally, a `rubric` describing when that label applies. **Rubrics meaningfully improve accuracy** - prefer them over bare strings for anything non-obvious. An optional per-key `description` adds context about the decision.
 
