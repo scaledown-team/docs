@@ -80,6 +80,14 @@
               "api-reference/compress-overview",
               "api-reference/compress"
             ]
+          },
+          {
+            "group": "Toolcall (Alpha)",
+            "icon": "wrench",
+            "pages": [
+              "api-reference/toolcall-overview",
+              "api-reference/toolcall"
+            ]
           }
         ]
       },

@@ -1,0 +1,87 @@
+---
+title: "Toolcall overview"
+sidebarTitle: "Overview"
+description: "A constrained model that reads your conversation and tool definitions and returns the tool call to make - never prose, never a hallucinated function."
+---
+
+<Note>
+The `toolcall` model is in **alpha**. The API shape and behavior may change,
+and there is no SLA yet. We welcome feedback at
+[support@scaledown.ai](mailto:support@scaledown.ai).
+</Note>
+
+## What it does
+
+The `toolcall` model, called through the OpenAI-compatible `POST /v1/chat/completions` endpoint, reads a conversation plus your tool definitions and returns the tool call to make, in the standard OpenAI `tool_calls` format. It is a Constrained Decoding Model (CDM): it is constrained to the tools you supply, so it never generates free-form prose, never invents a function name, and every call's arguments validate against that tool's JSON Schema. It does not run the tool - your application does.
+
+Because the endpoint is OpenAI-compatible, you can point an unmodified OpenAI or OpenRouter SDK at ScaleDown by changing only the base URL and API key. `toolcall` is also listed on OpenRouter as `scaledown/toolcall`.
+
+## When to use it
+
+**You are routing requests to functions and want guaranteed well-formed calls.** General-purpose models occasionally answer in prose, invent a function, or emit arguments that don't match your schema. Toolcall cannot: the decode is constrained to your tool definitions, so the output is always one schema-valid tool call.
+
+**You want fast, cheap tool selection.** Median latency is ~750 ms per call, several times faster than frontier general-purpose models, at $0.05 per 1M input tokens and $0 per 1M output tokens.
+
+**You are building agents on a budget.** Pair Toolcall with [Compress](/api-reference/compress-overview) or [Summarize](/api-reference/summarize-overview) to keep context small and a frontier model only for the steps that need it.
+
+**You don't need parallel tool calls.** Toolcall returns exactly one tool call per response. If a request implies several actions, issue follow-up turns or one request per action.
+
+## Common use cases
+
+| Use case | Example |
+|---|---|
+| Agent routers | Pick the right API/function for each user turn |
+| Chatbot action mapping | "Book a table for 2 at 8" → `book_restaurant(...)` |
+| Natural-language parameter filling | Extract typed arguments from free text into a schema |
+| Legacy-tool bridging | Map loose requests onto a fixed function inventory |
+| Guardrails | Constrained decode means no off-inventory or malformed calls |
+
+## How it fits into your workflow
+
+```
+[user message + your tools]
+        |
+        v
+[POST /v1/chat/completions, model "toolcall"]
+        |
+        v
+[one tool call: name + schema-valid arguments]  ->  [your app executes it]
+        |
+        v
+[feed the result back as a tool message, next turn]
+```
+
+Toolcall handles routing and argument extraction. Your application executes the tool, then optionally sends the result back and lets Toolcall route the next turn - see [multi-turn conversations](/api-reference/toolcall#multi-turn-conversations).
+
+## Key properties
+
+| Property | Value |
+|---|---|
+| Output | Exactly one tool call; `content` is always `null` |
+| Schema validity | Arguments always validate against the tool's JSON Schema |
+| Refusals | Never declines - with `tool_choice: "auto"` it always picks a tool |
+| Parallel calls | Not supported (one call per response) |
+| Tools per request | Up to 64 |
+| Context | Up to 1M tokens; text, image (url/base64) and file inputs |
+| Streaming | Not supported |
+| Sampling | Fixed server-side; `temperature` etc. are accepted but ignored |
+
+## Performance
+
+BFCL v3 (Berkeley Function Calling Leaderboard), November 2026. Every system
+received identical tools and system prompts; scored by the same matcher. Full
+methodology and raw data are available on request.
+
+| BFCL v3 category | Metric | **Toolcall** | gpt-6-astra | gpt-6.1-sol | gpt-6-luna |
+|---|---|---|---|---|---|
+| simple (200 items) | accuracy | **93.0%** | 89.5% | 88.0% | 87.0% |
+| multiple (100 items) | accuracy | **91.0%** | 91.0% | 90.0% | 87.0% |
+| all categories | invalid output rate | **0.0%** | 2.0% | 2.4% | 1.6% |
+| all categories | median latency | **748 ms** | 2874 ms | 3001 ms | 2068 ms |
+
+Constrained decoding means zero invalid outputs across 450 test calls: no
+hallucinated function names, no malformed JSON. BFCL's parallel categories
+require multiple tool calls in one response; since Toolcall returns exactly
+one call by design, those categories reflect the single-call architecture
+(the one call it makes is correct 92-97% of the time) rather than routing
+quality.
