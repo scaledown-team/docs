@@ -1,0 +1,199 @@
+---
+title: "Toolcall"
+description: "Return the tool call to make for a conversation, constrained to your tool definitions, in the OpenAI tool_calls format."
+---
+
+<Note>
+The `toolcall` model is in **alpha**. The API shape and behavior may change,
+and there is no SLA yet. We welcome feedback at
+[support@scaledown.ai](mailto:support@scaledown.ai).
+</Note>
+
+## Overview
+
+Toolcall is called through the OpenAI-compatible `POST /v1/chat/completions` endpoint. Set `model` to `toolcall` (latest) or `toolcall-1` (pinned to version 1) and send the conversation plus your tool definitions. The model returns exactly one tool call - the function to invoke and its arguments, as a JSON string that validates against that tool's schema. It never returns text: `content` is always `null`.
+
+Because the endpoint is OpenAI-compatible, you can point an unmodified OpenAI or OpenRouter SDK at ScaleDown by changing only the base URL and API key.
+
+```
+POST https://api.scaledown.xyz/v1/chat/completions
+```
+
+## Request
+
+<ParamField body="model" type="string" required>
+  `"toolcall"` (always the latest version) or `"toolcall-1"` (pinned to version 1). Both currently behave identically.
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  Standard OpenAI chat messages. The last **user** message is the request to route. **system** messages are optional and can steer selection (e.g. disambiguation rules). Full multi-turn history is accepted, including prior `assistant` tool calls and `tool` results - see [multi-turn conversations](#multi-turn-conversations).
+</ParamField>
+
+<ParamField body="tools" type="array" required>
+  Your tool inventory, in the OpenAI function-tool format: `{"type": "function", "function": {"name", "description", "parameters"}}`. **Non-empty**, at most **64 tools**, unique `function.name`s, and only `"type": "function"` is supported. `parameters` must be a JSON Schema object (`string`, `integer`, `number`, `boolean`, `array`, `object`; `properties`, `required`, `enum`, `items`, and nested objects are all supported). Names may contain dots.
+</ParamField>
+
+<ParamField body="tool_choice" type="string | object">
+  `"auto"` (default) - pick the best-matching tool. `"required"` - same behavior, explicit. `{"type": "function", "function": {"name": "..."}}` - force one specific tool; the model fills its arguments from the conversation even if another tool would fit better. `"none"` is **not supported** (400): the model can only respond with a tool call.
+</ParamField>
+
+`temperature`, `top_p`, `seed` and other sampling parameters are accepted for client compatibility but ignored - sampling is fixed server-side. `stream` and `response_format` are rejected (400).
+
+### Example
+
+```bash
+curl https://api.scaledown.xyz/v1/chat/completions \
+  -H "x-api-key: $SCALEDOWN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "toolcall",
+    "messages": [
+      {"role": "user", "content": "Book Le Petit Bistro for 2 tonight at 8pm"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "book_restaurant",
+          "description": "Book a restaurant table",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "restaurant": {"type": "string", "description": "Restaurant name"},
+              "party_size": {"type": "integer"},
+              "time": {"type": "string", "description": "HH:MM, 24h"}
+            },
+            "required": ["restaurant", "party_size", "time"]
+          }
+        }
+      }
+    ]
+  }'
+```
+
+## Response
+
+A standard `chat.completion`.
+
+<ResponseField name="model" type="string">
+  Echoes the `model` you sent (`toolcall` or `toolcall-1`).
+</ResponseField>
+
+<ResponseField name="choices[0].message.content" type="null">
+  Always `null`. The model produces no text.
+</ResponseField>
+
+<ResponseField name="choices[0].message.tool_calls" type="array">
+  Exactly one tool call:
+  <Expandable title="Tool call fields">
+    <ResponseField name="id" type="string">
+      Unique id for the call (e.g. `call_a664b3...`). Echo it back as `tool_call_id` when you send the executed result.
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Always `"function"`.
+    </ResponseField>
+    <ResponseField name="function.name" type="string">
+      One of the names you supplied in `tools` - never a hallucinated name.
+    </ResponseField>
+    <ResponseField name="function.arguments" type="string">
+      A JSON string that parses (and validates) against that tool's `parameters` schema. Parse it with a JSON parser; do not `eval`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="choices[0].finish_reason" type="string">
+  Always `"tool_calls"`.
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  `prompt_tokens` is the input tokens billed for the request ($0.05 per 1M), `completion_tokens` the output tokens (free), and `total_tokens` their sum.
+</ResponseField>
+
+```json
+{
+  "id": "chatcmpl-...",
+  "object": "chat.completion",
+  "created": 1795282372,
+  "model": "toolcall",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_...",
+        "type": "function",
+        "function": {
+          "name": "book_restaurant",
+          "arguments": "{\"restaurant\":\"Le Petit Bistro\",\"party_size\":2,\"time\":\"20:00\"}"
+        }
+      }]
+    },
+    "finish_reason": "tool_calls"
+  }],
+  "usage": {"prompt_tokens": 201, "completion_tokens": 29, "total_tokens": 230}
+}
+```
+
+## Behavior
+
+- **One tool call per response.** Parallel tool calls are not supported. If a request implies several actions, issue follow-up turns or one request per action.
+- **Always calls something.** With `tool_choice: "auto"` the model picks the best-matching tool even for vague or off-topic input - it cannot decline. Use `tool_choice` with a specific function when you need guaranteed routing.
+- **Schema-valid arguments, always.** The decode is constrained to each tool's JSON Schema; optional parameters the request does not specify are omitted rather than filled with placeholders.
+- **Deterministic-ish.** Sampling is fixed server-side. Like any sampled model, identical requests can occasionally differ on optional-argument values.
+
+## Multi-turn conversations
+
+Feed the executed result back as a `tool` message and the model routes the next user message with full context - including resolving references like "that city" across turns.
+
+```json
+{
+  "model": "toolcall",
+  "messages": [
+    {"role": "user", "content": "What's the weather in Paris?"},
+    {"role": "assistant", "content": null,
+     "tool_calls": [{"id": "call_1", "type": "function",
+       "function": {"name": "get_weather", "arguments": "{\"city\":\"Paris\"}"}}]},
+    {"role": "tool", "tool_call_id": "call_1", "content": "18C, light rain"},
+    {"role": "user", "content": "Now the time there"}
+  ],
+  "tools": [ /* get_weather, get_time, ... */ ]
+}
+```
+
+This routes to `get_time` with `{"tz": "Europe/Paris"}`.
+
+## Writing tools that route well
+
+Empirically (BFCL v3 benchmarking: 93% single-tool / 91% multi-tool selection accuracy):
+
+1. **Put formats in descriptions.** `"The city and state, e.g. Portland, OR"` is followed; a bare `string` invites free-form values.
+2. **Use `enum` when the vocabulary is closed.** Enum values are copied verbatim - including into the right parameter when two parameters have similar enums.
+3. **Describe units and conventions** ("rate as decimal, 10% -> 0.1"; dates as `YYYY-MM-DD`).
+4. **Mark only truly required parameters `required`.** Unspecified optional parameters are omitted.
+5. **One tool per intent** - since the model returns a single call, split compound requests ("check X then book Y") across turns.
+
+## Errors
+
+| Condition | Status | Body |
+|---|---|---|
+| Empty/missing `tools` | 400 | `The toolcall model requires a non-empty 'tools' array; it can only respond with a tool choice.` |
+| `tool_choice: "none"` | 400 | `tool_choice 'none' is not supported: the toolcall model can only respond with a tool call.` |
+| Duplicate function names | 400 | `Duplicate tool name '<name>'.` |
+| Non-function tool type | 400 | `tools[0]: only tools of type 'function' are supported.` |
+| Empty function name | 400 | `tools[0]: 'function.name' must be a non-empty string.` |
+| Invalid `parameters` | 400 | `tools[0] ('<name>'): 'parameters' must be a JSON Schema object.` |
+| `response_format` present | 400 | `This model only returns tool calls; 'response_format' is not supported.` |
+| `stream: true` | 400 | Streaming is not supported. |
+| Transient upstream issue | 502 | Retry with backoff (idempotent requests are safe to retry). |
+
+## Limits
+
+| Limit | Value |
+|---|---|
+| Max context | 1,000,000 tokens |
+| Max tools per request | 64 |
+| Tool calls per response | exactly 1 |
+| Streaming | not supported |
+
+Questions or feedback? Contact [support@scaledown.ai](mailto:support@scaledown.ai).
